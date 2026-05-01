@@ -1,37 +1,50 @@
 import dotenv from 'dotenv';
+import { SocksProxyAgent } from 'socks-proxy-agent';
+import { HttpProxyAgent } from 'http-proxy-agent';
+import { HttpsProxyAgent } from 'https-proxy-agent';
+
 dotenv.config();
 
 export class ProxyService {
-  private static PROXY_LIST = [
-    process.env.PROXY_URL || ''
-  ].filter(url => url !== '');
+  private static SOCKS5_URL = process.env.SOCKS5_PROXY_URL;
+  private static HTTP_URL = process.env.PROXY_URL;
 
-  private static currentIndex = 0;
+  /**
+   * Returns a SOCKS5 agent if configured, otherwise an HTTP agent.
+   * Optimized for high-speed concurrent requests.
+   */
+  public static getAgent() {
+    if (this.SOCKS5_URL) {
+      return new SocksProxyAgent(this.SOCKS5_URL, {
+        keepAlive: true,
+        timeout: 5000,
+        rejectUnauthorized: false
+      });
+    }
+    
+    if (this.HTTP_URL) {
+      return new HttpsProxyAgent(this.HTTP_URL, {
+        keepAlive: true,
+        timeout: 5000,
+        rejectUnauthorized: false
+      });
+    }
 
-  public static getNextProxy(): string | null {
-    if (this.PROXY_LIST.length === 0) return null;
-    const proxy = this.PROXY_LIST[this.currentIndex];
-    this.currentIndex = (this.currentIndex + 1) % this.PROXY_LIST.length;
-    return proxy;
+    return null;
   }
 
-  public static getAxiosConfig(proxyUrl: string) {
-    try {
-      const url = new URL(proxyUrl);
-      return {
-        proxy: {
-          protocol: url.protocol.replace(':', ''),
-          host: url.hostname,
-          port: parseInt(url.port),
-          auth: {
-            username: url.username,
-            password: url.password
-          }
-        }
-      };
-    } catch (e) {
-      console.error('Invalid proxy URL:', proxyUrl);
-      return {};
-    }
+  /**
+   * Returns axios configuration with the appropriate agent.
+   */
+  public static getAxiosConfig() {
+    const agent = this.getAgent();
+    if (!agent) return {};
+
+    return {
+      httpAgent: agent,
+      httpsAgent: agent,
+      proxy: false, // Important: tell axios not to use its internal proxy logic
+      timeout: 5000
+    };
   }
 }
