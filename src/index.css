@@ -49,8 +49,33 @@
 
 /* Glassmorphism Panel */
 .glass-panel {
-  @apply bg-slate-900/40 backdrop-blur-md border border-slate-800/50 rounded-lg shadow-2xl;
+  @apply bg-slate-900/40 backdrop-blur-md border border-slate-800/50 rounded-lg shadow-2xl relative;
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+}
+
+/* Corner Accents */
+.glass-panel::before,
+.glass-panel::after {
+  content: '';
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-color: rgba(34, 211, 238, 0.5);
+  pointer-events: none;
+}
+
+.glass-panel::before {
+  top: -1px;
+  left: -1px;
+  border-top: 2px solid;
+  border-left: 2px solid;
+}
+
+.glass-panel::after {
+  bottom: -1px;
+  right: -1px;
+  border-bottom: 2px solid;
+  border-right: 2px solid;
 }
 
 /* Futuristic Scanline Effect */
@@ -68,11 +93,24 @@
   position: absolute;
   bottom: 100%;
   animation: scanline 10s linear infinite;
+  pointer-events: none;
 }
 
 @keyframes scanline {
   0% { bottom: 100%; }
   100% { bottom: -100px; }
+}
+
+/* Data Stream Animation */
+@keyframes data-stream {
+  0% { transform: translateY(0); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(20px); opacity: 0; }
+}
+
+.data-stream-item {
+  animation: data-stream 2s linear infinite;
 }
 
 /* Thin-line accents */

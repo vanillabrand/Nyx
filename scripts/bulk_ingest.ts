@@ -4,7 +4,7 @@ import { AviationHeraldScraper } from '../src/services/AviationHeraldScraper';
 import bootstrapData from '../src/constants/bootstrap_data.json';
 
 async function bulkIngest() {
-  const csvPath = 'C:/Users/bruce/Downloads/avh_raw_data.csv';
+  const csvPath = '/mnt/c/Users/bruce/Downloads/avh_raw_data.csv';
   const content = fs.readFileSync(csvPath, 'utf-8');
   const lines = content.split('\n').slice(1); // Skip header
 
