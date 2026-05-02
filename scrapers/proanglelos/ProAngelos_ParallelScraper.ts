@@ -3,8 +3,9 @@ import * as cheerio from 'cheerio';
 import pLimit from 'p-limit';
 import fs from 'fs';
 import path from 'path';
-import { ProxyService } from '../../src/services/ProxyService';
-import { ScrapeMission, ScrapedIncident } from './PayloadSchema';
+import { ProxyService } from '../../src/services/ProxyService.ts';
+import type { ScrapeMission, ScrapedIncident } from './PayloadSchema.ts';
+import patterns from '../../src/constants/aviation_patterns.json' with { type: 'json' };
 
 export class ProAngelos_ParallelScraper {
   private mission: ScrapeMission;
@@ -15,36 +16,33 @@ export class ProAngelos_ParallelScraper {
     this.limit = pLimit(this.mission.engine_config.concurrency);
   }
 
-  /**
-   * Execute the mission
-   */
   async execute() {
     console.log(`[${this.mission.mission_id}] ⚡ Starting high-velocity mission...`);
-    
-    const tasks = this.mission.targets.map(target => 
-      this.processTarget(target)
-    );
-
+    const tasks = this.mission.targets.map(target => this.processTarget(target));
     const results = await Promise.all(tasks);
-    const flattened = results.flat().filter(Boolean);
+    
+    const uniqueMap = new Map<string, ScrapedIncident>();
+    results.flat().filter(Boolean).forEach(incident => {
+      if (!uniqueMap.has(incident.source_id)) {
+        uniqueMap.set(incident.source_id, incident);
+      }
+    });
 
+    const flattened = Array.from(uniqueMap.values());
     this.saveResults(flattened);
-    console.log(`[${this.mission.mission_id}] 🎯 Mission accomplished. Total records: ${flattened.length}`);
+    console.log(`[${this.mission.mission_id}] 🎯 Mission accomplished. Total unique records: ${flattened.length}`);
     return flattened;
   }
 
   private async processTarget(baseUrl: string) {
-    const targetResults: ScrapedIncident[] = [];
+    if (baseUrl.includes('article=')) {
+      return [await this.limit(() => this.scrapeDetails(baseUrl, true))];
+    }
     const pagePromises = [];
-
     for (let p = 1; p <= this.mission.engine_config.depth_per_url; p++) {
-      const pageUrl = baseUrl.includes('?') 
-        ? `${baseUrl}&page=${p}` 
-        : `${baseUrl}?page=${p}`;
-      
+      const pageUrl = baseUrl.includes('?') ? `${baseUrl}&page=${p}` : `${baseUrl}?page=${p}`;
       pagePromises.push(this.limit(() => this.scrapeIndexPage(pageUrl)));
     }
-
     const pagesData = await Promise.all(pagePromises);
     return pagesData.flat().filter(Boolean);
   }
@@ -52,126 +50,110 @@ export class ProAngelos_ParallelScraper {
   private async scrapeIndexPage(url: string): Promise<ScrapedIncident[]> {
     const axiosConfig = ProxyService.getAxiosConfig();
     try {
-      const response = await axios.get(url, {
-        ...axiosConfig,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept-Encoding': 'gzip, deflate, br'
-        },
-        timeout: this.mission.engine_config.timeout_ms
+      const response = await axios.get(url, { 
+        ...axiosConfig, 
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+        timeout: this.mission.engine_config.timeout_ms 
       });
-
       const $ = cheerio.load(response.data);
       const pageIncidents: ScrapedIncident[] = [];
       let currentDate = '';
 
-      const rows = $('td');
-      const extractionTasks: any[] = [];
-
-      rows.each((_, td) => {
+      $('td').each((_, td) => {
         const span = $(td).find('span.headline_avherald');
         if (span.length > 0) {
           const link = $(td).find('a[href^="/h?article="]');
           if (link.length > 0) {
-            const headline = span.text().trim();
-            const href = link.attr('href');
-            const source_id = href?.split('article=')[1]?.split('&')[0] || '';
-            const fullUrl = href ? `https://avherald.com${href}` : '';
-
-            const incident: ScrapedIncident = {
-              source_id,
+            pageIncidents.push({
+              source_id: link.attr('href')?.split('article=')[1]?.split('&')[0] || '',
               occurred_at: currentDate,
-              headline,
-              url: fullUrl,
+              headline: span.text().trim(),
+              url: `https://avherald.com${link.attr('href')}`,
               source: 'AVHERALD'
-            };
-
-            if (this.mission.extraction_mode === 'FULL' && fullUrl) {
-              extractionTasks.push(this.limit(async () => {
-                const details = await this.scrapeDetails(fullUrl);
-                incident.meta = { ...incident.meta, ...details };
-                return incident;
-              }));
-            } else {
-              pageIncidents.push(incident);
-            }
+            });
           } else {
             currentDate = span.text().trim();
           }
         }
       });
-
-      if (extractionTasks.length > 0) {
-        const detailedIncidents = await Promise.all(extractionTasks);
-        return detailedIncidents;
-      }
-
       return pageIncidents;
-    } catch (error: any) {
-      console.error(`[Scraper] ❌ Error fetching ${url}: ${error.message}`);
-      return [];
-    }
+    } catch { return []; }
   }
 
-  private async scrapeDetails(url: string) {
+  private async scrapeDetails(url: string, isFullIncident = false) {
     const axiosConfig = ProxyService.getAxiosConfig();
     try {
-      const response = await axios.get(url, { ...axiosConfig, timeout: this.mission.engine_config.timeout_ms });
+      const response = await axios.get(url, { 
+        ...axiosConfig, 
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+        timeout: this.mission.engine_config.timeout_ms 
+      });
       const $ = cheerio.load(response.data);
       
-      const narrative = $('.main_column').text().trim().substring(0, 500); // Truncated for lean storage
-      const metar = $('span.metar').text().trim();
+      // Use refined article-specific selectors
+      const headline = $('span.headline_article').first().text().trim();
+      const narrative = $('span.article_avherald').first().text().trim();
+      const metar = $('span.brief_avherald').first().text().trim();
+      const fullText = `${headline} ${narrative}`;
 
-      return { narrative, metar };
-    } catch (e) {
-      return {};
-    }
+      // 1. Precise Date Extraction (look for "on Month DDth YYYY" in headline)
+      let occurred_at = '';
+      const dateMatch = headline.match(/on\s+([A-Z][a-z]{2}\s+\d{1,2}(?:st|nd|rd|th)?\s+\d{4})/i);
+      if (dateMatch) {
+        occurred_at = dateMatch[1];
+      } else {
+        // Fallback: look in metadata lines
+        $('td').each((_, td) => {
+          const text = $(td).text();
+          if (text.startsWith('Date:')) occurred_at = text.replace('Date:', '').trim();
+        });
+      }
+
+      // 2. Hardened Entity Extraction
+      const findEntity = (list: string[]) => {
+        for (const item of list) {
+          if (item.length < 3) continue; // Skip too-short patterns
+          const escaped = item.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const regex = new RegExp(`\\b${escaped}\\b`, 'i');
+          if (regex.test(fullText)) return item;
+        }
+        return null;
+      };
+
+      const aircraft = findEntity(patterns.aircraft);
+      const airline = findEntity(patterns.airlines);
+      
+      // 3. ICAO Airport Detection
+      const icaoMatch = fullText.match(/\b([A-Z]{4})\b/g);
+      const airport_icao = icaoMatch ? icaoMatch[0] : null;
+
+      // 4. Severity Class Detection
+      let severity = 'Incident';
+      if (headline.toLowerCase().includes('accident')) severity = 'Accident';
+      else if (headline.toLowerCase().includes('serious incident')) severity = 'Serious Incident';
+      else if (headline.toLowerCase().includes('crash')) severity = 'Accident';
+
+      return {
+        source_id: url.split('article=')[1]?.split('&')[0] || '',
+        occurred_at: occurred_at || '',
+        headline,
+        url,
+        source: 'AVHERALD',
+        meta: {
+          narrative: narrative.substring(0, 2000), // Larger narrative capture
+          metar,
+          aircraft_type: aircraft,
+          operator: airline,
+          airport_icao,
+          severity
+        }
+      };
+    } catch { return isFullIncident ? null : {}; }
   }
 
   private saveResults(data: any[]) {
     const outPath = path.resolve(this.mission.output_settings.path);
-    if (!fs.existsSync(outPath)) {
-      fs.mkdirSync(outPath, { recursive: true });
-    }
-
-    const fileName = `${this.mission.mission_id}_${Date.now()}.json`;
-    const fullPath = path.join(outPath, fileName);
-
-    fs.writeFileSync(fullPath, JSON.stringify(data, null, 2));
-    console.log(`[Scraper] 💾 Results saved to ${fullPath}`);
+    if (!fs.existsSync(outPath)) fs.mkdirSync(outPath, { recursive: true });
+    fs.writeFileSync(path.join(outPath, `${this.mission.mission_id}_${Date.now()}.json`), JSON.stringify(data, null, 2));
   }
-}
-
-// CLI / Standalone Runner
-const run = async () => {
-  const args = process.argv.slice(2);
-  let mission: ScrapeMission;
-
-  if (args.length > 0 && fs.existsSync(args[0])) {
-    mission = JSON.parse(fs.readFileSync(args[0], 'utf-8'));
-  } else {
-    // Default fallback mission
-    mission = {
-      mission_id: "DEFAULT_MISSION",
-      targets: ["https://avherald.com/h?search_term=737+max"],
-      engine_config: {
-        depth_per_url: 1,
-        concurrency: 5,
-        timeout_ms: 10000,
-        retry_limit: 3
-      },
-      extraction_mode: "LEAN",
-      output_settings: {
-        format: "json",
-        path: "./data/scrapes"
-      }
-    };
-  }
-
-  const scraper = new ProAngelos_ParallelScraper(mission);
-  await scraper.execute();
-};
-
-if (process.argv[1].includes('ProAngelos_ParallelScraper')) {
-  run().catch(console.error);
 }

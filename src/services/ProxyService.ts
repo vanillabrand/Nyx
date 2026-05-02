@@ -1,6 +1,5 @@
 import dotenv from 'dotenv';
 import { SocksProxyAgent } from 'socks-proxy-agent';
-import { HttpProxyAgent } from 'http-proxy-agent';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 
 dotenv.config();
@@ -17,8 +16,7 @@ export class ProxyService {
     if (this.SOCKS5_URL) {
       return new SocksProxyAgent(this.SOCKS5_URL, {
         keepAlive: true,
-        timeout: 5000,
-        rejectUnauthorized: false
+        timeout: 5000
       });
     }
     
@@ -43,7 +41,7 @@ export class ProxyService {
     return {
       httpAgent: agent,
       httpsAgent: agent,
-      proxy: false, // Important: tell axios not to use its internal proxy logic
+      proxy: false as const, // Important: tell axios not to use its internal proxy logic
       timeout: 5000
     };
   }

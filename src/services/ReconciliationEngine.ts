@@ -1,4 +1,4 @@
-import { DetailedIncident } from './AviationHeraldScraper';
+import type { DetailedIncident } from './AviationHeraldScraper';
 
 export interface SourceAuthority {
   sourceId: string;

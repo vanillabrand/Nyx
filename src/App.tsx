@@ -1,169 +1,154 @@
-import React from 'react';
-import { GlobeScene } from './components/GlobeScene';
-import { DashboardPanel } from './components/DashboardPanel';
-import { Plane, AlertTriangle, Search, Activity, Wind, Database } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import GlobeScene from './components/GlobeScene.tsx';
+import ManifestStack from './components/ManifestStack.tsx';
 
-function App() {
+const App: React.FC = () => {
+  // const [selectedIncident, setSelectedIncident] = useState<any>(null);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Model state for the stack with accurate 'EVENT_DATE' from headlines
+  const [incidents] = useState<any[]>([
+    {
+      id: 'CR-5389793',
+      operator: 'DELTA AIR LINES',
+      aircraft: 'AIRBUS A321-211',
+      departure: 'MSP',
+      arrival: 'MKE',
+      status: 'CRASH',
+      theme: 'theme-crash',
+      time: '14:22',
+      date: 'APR 26, 2026', // Extracted from headline
+      metar: 'KMSP 261422Z 33012G20KT 10SM BKN045 12/02 Q1012',
+      occurrenceCategory: ['FIRE', 'SMOKE', 'ENGINE'],
+      narrative: 'Sudden loss of altitude at FL320. Crew reported severe smoke and fire on board. Tactical asset loss confirmed.'
+    },
+    {
+      id: 'AC-5362bc2',
+      operator: 'JETBLUE AIRWAYS',
+      aircraft: 'AIRBUS A321-271NX',
+      departure: 'JFK',
+      arrival: 'ORD',
+      status: 'ACCIDENT',
+      theme: 'theme-accident',
+      time: '09:45',
+      date: 'APR 17, 2026', // Extracted from headline
+      metar: 'KJFK 170945Z 18008KT 9SM FEW025 15/09 Q1018',
+      occurrenceCategory: ['ODOUR', 'PAX_SAFETY'],
+      narrative: 'Odour in cabin reported during descent. Crew donned oxygen masks and initiated priority landing at ORD.'
+    },
+    {
+      id: 'NW-536954b',
+      operator: 'PORTER AIRLINES',
+      aircraft: 'EMBRAER E195-E2',
+      departure: 'YEG',
+      arrival: 'YYZ',
+      status: 'INCIDENT',
+      theme: 'theme-news',
+      time: '22:10',
+      date: 'FEB 22, 2026', // Extracted from headline
+      metar: 'CYEG 222210Z AUTO 00000KT 15SM SKC M10/M15 Q1025',
+      occurrenceCategory: ['TYRE', 'LANDING'],
+      narrative: 'Passenger observed tyre separating on departure. Crew elected to return to YEG for precautionary landing.'
+    },
+    {
+      id: 'NEW-999',
+      operator: 'UNITED AIRLINES',
+      aircraft: 'BOEING 737-800',
+      departure: 'DEN',
+      arrival: 'LAX',
+      status: 'MONITORING',
+      theme: 'theme-news',
+      time: '07:30',
+      date: 'MAY 01, 2026',
+      source_id: '999',
+      metar: 'KDEN 010730Z 24015KT 10SM SCT080 18/04 Q1015',
+      occurrenceCategory: ['MONITORING', 'TECHNICAL'],
+      narrative: 'Unidentified technical discrepancy reported in Denver sector. Monitoring telemetry.',
+      isNew: true
+    }
+  ]);
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+
+    // Automation Sync Polling
+    const syncCheck = setInterval(async () => {
+      try {
+        const resp = await fetch('/data/automation_log.json');
+        if (resp.ok) {
+          const log = await resp.json();
+          console.log('🔄 [Sync] Background automation status:', log.status);
+        }
+      } catch (e) { /* silent fail */ }
+    }, 60000);
+
+    return () => {
+      clearInterval(timer);
+      clearInterval(syncCheck);
+    };
+  }, []);
+
+  const handleSelectIncident = (_incident: any) => {
+    // const _found = incidents.find(i => i.id === incident.source_id);
+    // if (_found) setSelectedIncident(_found);
+  };
+
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-slate-950 text-slate-200">
+    <div className="app-container" style={{ position: 'relative', width: '100vw', height: '100vh', background: '#030304' }}>
+
       {/* Background Globe */}
-      <div className="absolute inset-0 z-0">
-        <GlobeScene />
+      <div className="globe-container" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 1 }}>
+        <GlobeScene incidents={incidents} onSelectIncident={handleSelectIncident} />
       </div>
 
-      {/* Overlays */}
-      <div className="absolute inset-0 pointer-events-none z-10">
-        <div className="scanline" />
+      {/* UI Overlays: Tactical HUD */}
+      <div className="ui-overlay" style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        zIndex: 4,
+        pointerEvents: 'none',
+        padding: 'var(--p-lg)',
+        display: 'grid',
+        gridTemplateColumns: 'calc(20vw - 40px) 1fr 300px',
+        gridTemplateRows: 'auto 1fr auto',
+        gap: 'var(--gap-lg)'
+      }}>
+
+        {/* Top Left: Mission Headers */}
+        <div style={{ gridColumn: '1', display: 'flex', flexDirection: 'column', gap: '8px', pointerEvents: 'all' }}>
+          <div className="thin-title" style={{ fontSize: '0.65rem', opacity: 0.6, letterSpacing: '0.3em' }}>\\ AVIATION COMMAND</div>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            width: '100%',
+            marginTop: '4px',
+            whiteSpace: 'nowrap'
+          }}>
+            <div className="header-text" style={{ fontSize: '1.2rem', color: 'var(--rose-red)', letterSpacing: '0.05em', paddingRight: '15px' }}>
+              {currentTime.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase()}
+            </div>
+            <div style={{ width: '1px', height: '1.5rem', background: 'var(--rose-red)', opacity: 0.5 }}></div>
+            <div className="header-text" style={{ fontSize: '1.25rem', color: 'var(--rose-red)', letterSpacing: '0.05em', fontWeight: 900 }}>
+              {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
+            </div>
+          </div>
+        </div>
+
+        {/* Top Right: Status Info - REMOVED */}
+        <div style={{ gridColumn: '3' }}></div>
+
+        {/* Left Side: Manifest Rolling Grid */}
+        <div style={{ gridRow: '2', gridColumn: '1', pointerEvents: 'all', display: 'flex', alignItems: 'center' }}>
+          <ManifestStack cards={incidents} />
+        </div>
+
       </div>
-
-      {/* Navigation / Header */}
-      <header className="absolute top-0 left-0 right-0 p-4 z-20 flex justify-between items-center bg-gradient-to-b from-slate-950/80 to-transparent">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-cyan-500 rounded-sm flex items-center justify-center shadow-[0_0_20px_rgba(34,211,238,0.3)]">
-            <Plane className="text-slate-950 w-6 h-6" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold tracking-tighter glow-cyan italic">FIE // FLIGHT INTELLIGENCE ENGINE</h1>
-            <p className="text-[10px] font-mono text-cyan-500/70 tracking-[0.2em]">VERSION 1.0.4-BETA // WORLDWIDE SURVEILLANCE</p>
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-6">
-          <div className="flex flex-col items-end">
-            <span className="text-[10px] font-mono text-slate-500 uppercase">System Status</span>
-            <span className="text-xs font-bold text-green-400 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
-              OPERATIONAL
-            </span>
-          </div>
-          <div className="flex flex-col items-end border-l border-slate-800 pl-6">
-            <span className="text-[10px] font-mono text-slate-500 uppercase">Live Connections</span>
-            <span className="text-xs font-bold text-cyan-400">14,292 FLIGHTS</span>
-          </div>
-        </div>
-      </header>
-
-      {/* Draggable Panels Container */}
-      <main className="absolute inset-0 p-6 pt-24 z-20 pointer-events-none">
-        <div className="relative w-full h-full pointer-events-auto">
-          
-          {/* Natural Language Query Panel */}
-          <DashboardPanel 
-            title="Intelligence Query (NLQ)" 
-            icon={<Search className="w-3 h-3 text-cyan-400" />}
-            className="absolute top-0 left-0 w-[450px]"
-          >
-            <div className="space-y-4">
-              <div className="relative">
-                <textarea 
-                  className="w-full bg-slate-900/50 border border-slate-700/50 rounded p-3 text-sm font-mono placeholder:text-slate-600 focus:outline-none focus:border-cyan-500/50 transition-colors"
-                  placeholder="Ask a flight intelligence question..."
-                  rows={3}
-                />
-                <div className="absolute bottom-2 right-2 flex gap-2">
-                  <button className="bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 text-[10px] font-bold py-1 px-3 rounded border border-cyan-500/30 transition-all uppercase tracking-wider">
-                    Analyse
-                  </button>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 text-[10px] text-slate-500 font-mono">
-                <Activity className="w-3 h-3" />
-                <span>WebLLM: Gemma-2b-it (Local) // Ready</span>
-              </div>
-            </div>
-          </DashboardPanel>
-
-          {/* Real-time Alerts Panel */}
-          <DashboardPanel 
-            title="Live Incident Feed" 
-            icon={<AlertTriangle className="w-3 h-3 text-red-400" />}
-            className="absolute bottom-10 left-0 w-[400px]"
-          >
-            <div className="space-y-3">
-              {[
-                { type: 'SEVERE', text: 'Boeing 737-800 // Engine Failure // EDDF', time: '2m ago' },
-                { type: 'WARNING', text: 'Airbus A321 // Bird Strike // KJFK', time: '14m ago' },
-                { type: 'INFO', text: 'Pattern Detected: Unstable approach trends at VHHH', time: '45m ago' },
-              ].map((alert, i) => (
-                <div key={i} className={`p-2 border-l-2 flex justify-between items-start ${
-                  alert.type === 'SEVERE' ? 'border-red-500 bg-red-500/5' : 
-                  alert.type === 'WARNING' ? 'border-amber-500 bg-amber-500/5' : 'border-cyan-500 bg-cyan-500/5'
-                }`}>
-                  <div>
-                    <span className={`text-[9px] font-bold uppercase tracking-wider ${
-                      alert.type === 'SEVERE' ? 'text-red-400' : 
-                      alert.type === 'WARNING' ? 'text-amber-400' : 'text-cyan-400'
-                    }`}>{alert.type}</span>
-                    <p className="text-xs text-slate-300 mt-0.5">{alert.text}</p>
-                  </div>
-                  <span className="text-[10px] font-mono text-slate-600">{alert.time}</span>
-                </div>
-              ))}
-            </div>
-          </DashboardPanel>
-
-          {/* Metrics / Readouts */}
-          <DashboardPanel 
-            title="Fleet Telemetry" 
-            icon={<Activity className="w-3 h-3 text-green-400" />}
-            className="absolute top-0 right-0 w-[300px]"
-          >
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col">
-                <span className="text-[9px] text-slate-500 uppercase font-mono">Avg Altitude</span>
-                <span className="text-xl font-bold text-slate-200">34,200<span className="text-[10px] ml-1 text-slate-500">FT</span></span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[9px] text-slate-500 uppercase font-mono">Avg Speed</span>
-                <span className="text-xl font-bold text-slate-200">462<span className="text-[10px] ml-1 text-slate-500">KTS</span></span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[9px] text-slate-500 uppercase font-mono">Anomaly Score</span>
-                <span className="text-xl font-bold text-amber-400">0.14</span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[9px] text-slate-500 uppercase font-mono">Risk Index</span>
-                <span className="text-xl font-bold text-green-400">LOW</span>
-              </div>
-            </div>
-          </DashboardPanel>
-
-          {/* Database Info */}
-          <div className="absolute bottom-10 right-0 flex gap-4">
-            <div className="glass-panel p-2 flex items-center gap-3 px-4">
-              <Database className="w-4 h-4 text-cyan-500" />
-              <div className="flex flex-col">
-                <span className="text-[9px] text-slate-500 uppercase font-mono">Neo4j Nodes</span>
-                <span className="text-xs font-bold font-mono">1.2M ENTITIES</span>
-              </div>
-            </div>
-            <div className="glass-panel p-2 flex items-center gap-3 px-4 border-cyan-500/30">
-              <Wind className="w-4 h-4 text-cyan-500" />
-              <div className="flex flex-col">
-                <span className="text-[9px] text-slate-500 uppercase font-mono">Active Analysis</span>
-                <span className="text-xs font-bold font-mono">PATTERN MATCHING...</span>
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </main>
-
-      {/* Footer / Status Bar */}
-      <footer className="absolute bottom-0 left-0 right-0 h-6 bg-slate-900/80 border-t border-slate-800 flex items-center justify-between px-4 z-30">
-        <div className="flex items-center gap-4 text-[9px] font-mono text-slate-500">
-          <span>LAT: 51.5074</span>
-          <span>LNG: -0.1278</span>
-          <span>UTC: {new Date().toISOString()}</span>
-        </div>
-        <div className="flex items-center gap-4 text-[9px] font-mono text-cyan-500/50">
-          <span>SOURCE: ADS-B EXCHANGE + ASN + AVH</span>
-          <span className="text-slate-700">|</span>
-          <span>SECURE_ENCRYPTION: AES-256</span>
-        </div>
-      </footer>
     </div>
   );
-}
+};
 
 export default App;

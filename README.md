@@ -132,6 +132,22 @@ When data conflicts occur, Nyx automatically promotes the highest-ranking source
 
 ---
 
+## 🕵️‍♂️ Intelligence Gathering: The Smart Hunt
+The system utilizes the **ProAngelos High-Velocity Engine** for data acquisition, featuring:
+*   **Dual-Pass Intelligence**:
+    1.  **Discovery Pass (LEAN)**: Rapidly scans sources for incident IDs and metadata.
+    2.  **Hydration Pass (FULL)**: Recursively fetches detailed narratives and METAR data only for missing or stale records.
+*   **SOCKS5 Stealth**: Utilizes rotating residential proxies via SOCKS5 for maximum throughput and anonymity.
+*   **Neo4j Caching**: All results are persisted in a graph, enabling instant retrieval for future queries and complex relationship mining.
+
+### 🚀 Running a Mission
+You can trigger a high-speed harvest mission using the standalone scraper:
+```bash
+wsl -e npx tsx scripts/test_smart_mission.ts
+```
+
+---
+
 ## 🌐 External Data Sources
 *   **The Aviation Herald**: Primary source for real-time incident alerts.
 *   **ICAO Doc 8643**: Master reference for aircraft type designators.

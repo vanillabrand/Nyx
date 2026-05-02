@@ -23,3 +23,6 @@ dist-ssr
 *.sln
 *.sw?
 .env
+data/scrapes/BOOTSTRAP_SEARCH_1777599672299.json
+data/scrapes/LARGE_SCALE_TEST_001_DISCOVERY_1777601747941.json
+data/scrapes/LARGE_SCALE_TEST_001_DISCOVERY_1777601849015.json

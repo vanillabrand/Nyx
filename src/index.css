@@ -1,136 +1,296 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;300;400;500;700&family=Space+Grotesk:wght@300;400;500&family=Outfit:wght@100;300;400;500;700&display=swap');
 
-@layer base {
-  :root {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+:root {
+  --bg-dark: #030304;
+  --bg-panel: rgba(18, 18, 22, 0.25);
+  --rose-red: #cf142b;
+  --rose-red-dark: #670a15;
+  --rose-red-glow: rgba(158, 27, 50, 0.4);
+  --text-primary: #e4e4e7;
+  --text-secondary: #a1a1aa;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+  --font-header: "Euclid", "Outfit", sans-serif;
+  --font-desc: "GT Pressura", "Space Grotesk", monospace;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+  /* Spacing System */
+  --gap-lg: 40px;
+  --gap-md: 24px;
+  --p-lg: 32px;
+  --p-md: 24px;
 
-    --primary: 188.7 94.5% 42.7%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
-
-    --radius: 0.5rem;
-  }
+  /* Status Colors */
+  --status-crash: #9e1b32;
+  --status-crash-glow: rgba(158, 27, 50, 0.4);
+  --status-accident: #7000ff;
+  --status-accident-glow: rgba(112, 0, 255, 0.4);
+  --status-news: #3f3f46;
+  --status-news-glow: rgba(63, 63, 70, 0.4);
 }
 
-@layer base {
-  * {
-    @apply border-border;
-  }
-  body {
-    @apply bg-background text-foreground;
-    font-feature-settings: "rlig" 1, "calt" 1;
-    background: radial-gradient(circle at 50% 50%, #0f172a 0%, #020617 100%);
-  }
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-/* Glassmorphism Panel */
-.glass-panel {
-  @apply bg-slate-900/40 backdrop-blur-md border border-slate-800/50 rounded-lg shadow-2xl relative;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+body {
+  background-color: var(--bg-dark);
+  color: var(--text-primary);
+  font-family: var(--font-desc);
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
 }
 
-/* Corner Accents */
-.glass-panel::before,
-.glass-panel::after {
+h1,
+h2,
+h3,
+.header-text {
+  font-family: var(--font-header);
+  letter-spacing: -0.02em;
+}
+
+.thin-title {
+  font-weight: 100;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+}
+
+/* Cockpit Panel Styling */
+.cockpit-panel {
+  position: relative;
+  background: rgba(18, 18, 22, 0.25);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+/* Glass Overlay Layer */
+.cockpit-panel::after {
   content: '';
   position: absolute;
-  width: 10px;
-  height: 10px;
-  border-color: rgba(34, 211, 238, 0.5);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg,
+      rgba(255, 255, 255, 0.08) 0%,
+      transparent 50%,
+      rgba(255, 255, 255, 0.04) 100%);
   pointer-events: none;
-}
-
-.glass-panel::before {
-  top: -1px;
-  left: -1px;
-  border-top: 2px solid;
-  border-left: 2px solid;
-}
-
-.glass-panel::after {
-  bottom: -1px;
-  right: -1px;
-  border-bottom: 2px solid;
-  border-right: 2px solid;
-}
-
-/* Futuristic Scanline Effect */
-.scanline {
-  width: 100%;
-  height: 100px;
   z-index: 10;
-  background: linear-gradient(
-    0deg,
-    rgba(34, 211, 238, 0) 0%,
-    rgba(34, 211, 238, 0.05) 50%,
-    rgba(34, 211, 238, 0) 100%
-  );
-  opacity: 0.1;
+}
+
+/* UI Interactive Elements */
+.btn-interactive {
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 6px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-secondary);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+}
+
+/* Manifest Card Style */
+.manifest-card {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.manifest-header {
+  background: var(--rose-red-dark);
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  height: 50px;
+  min-height: 50px;
+  flex-shrink: 0; /* Prevent squashing */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
+.manifest-item {
+  border: 0.5px solid rgba(255, 255, 255, 0.05);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  flex-grow: 1;
+}
+
+.manifest-label {
+  font-family: var(--font-desc);
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--theme-color);
+  margin-bottom: 6px;
+}
+
+.manifest-value {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #d1d1d6;
+  text-transform: uppercase;
+}
+
+.ticket-code {
+  font-size: 1.2rem;
+  /* Scaled down */
+  font-weight: 900;
+  color: white;
+  letter-spacing: -0.05em;
+}
+
+/* Grid HUD Transformation: 1x3 Vertical Column */
+.grid-mask-container {
+  position: relative;
+  width: calc(20vw - 40px); /* Reduced width by 40px */
+  height: 80vh; /* Responsive height to fit screen */
+  max-height: 900px; /* Cap for ultra-wide/tall monitors */
+  overflow: hidden;
+  mask-image: linear-gradient(to bottom, black 0%, black 85%, transparent);
+  -webkit-mask-image: linear-gradient(to bottom, black 0%, black 85%, transparent);
+  pointer-events: all;
+}
+
+.grid-scroll-container {
+  display: grid;
+  grid-template-columns: 1fr;
+  /* 1 Column */
+  gap: 20px;
+  width: 100%;
+  padding-bottom: 400px; /* Ensure last card can scroll fully into view */
+}
+
+.manifest-card {
+  width: 100%;
+  height: 350px;
+  min-width: 150px;
+  min-height: 200px;
+  background: #0a0101 !important;
+  /* Near-Black Base */
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  cursor: pointer;
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.8);
+}
+
+/* Cherry Anchor System (Footer) */
+.manifest-card::before {
+  content: '';
   position: absolute;
-  bottom: 100%;
-  animation: scanline 10s linear infinite;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 50px; /* Solid 50px height */
+  background: var(--rose-red-dark);
+  opacity: 1;
   pointer-events: none;
+  z-index: 1;
 }
 
+/* Top Right Inverted Curved Triangle (Topper) */
+.reflective-shine {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 50%;
+  height: 60px; /* Increased to 60px */
+  pointer-events: none;
+  z-index: 100; /* Maintained high z-index for visibility */
+}
+
+.focused-card-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(3, 3, 4, 0.85);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-start;
+  padding: 40px;
+  padding-top: 100px;
+  /* Align with AVIATION COMMAND area */
+}
+
+.focused-card {
+  width: 380px;
+  height: 600px;
+  z-index: 1001;
+  box-shadow: 0 0 50px rgba(0, 0, 0, 0.8);
+}
+
+/* Curved Glass Triangle (Top Right) */
+.stack-card::before {
+  content: '';
+  position: absolute;
+  top: -20px;
+  right: -20px;
+  width: 180px;
+  height: 180px;
+  background: linear-gradient(225deg,
+      rgba(255, 255, 255, 0.3) 0%,
+      rgba(255, 255, 255, 0.1) 40%,
+      transparent 70%);
+  border-radius: 50%;
+  /* Create curve */
+  pointer-events: none;
+  z-index: 100;
+}
+
+/* Fanning Sequence - DEPRECATED for Grid */
+.fanned-card {
+  display: none;
+}
+
+/* Theme Variants */
+.theme-crash {
+  --theme-color: var(--status-crash);
+}
+
+.theme-accident {
+  --theme-color: var(--status-accident);
+}
+
+.theme-news {
+  --theme-color: var(--status-crash);
+}
+
+/* Scanline Animation */
 @keyframes scanline {
-  0% { bottom: 100%; }
-  100% { bottom: -100px; }
+  0% {
+    transform: translateY(-100%);
+  }
+
+  100% {
+    transform: translateY(100%);
+  }
 }
 
-/* Data Stream Animation */
-@keyframes data-stream {
-  0% { transform: translateY(0); opacity: 0; }
-  10% { opacity: 1; }
-  90% { opacity: 1; }
-  100% { transform: translateY(20px); opacity: 0; }
-}
-
-.data-stream-item {
-  animation: data-stream 2s linear infinite;
-}
-
-/* Thin-line accents */
-.thin-border {
-  border-width: 0.5px;
-}
-
-/* Neon Glows */
-.glow-cyan {
-  text-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
-}
-
-.glow-red {
-  text-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
-}
-
-/* Draggable Handle Style */
-.drag-handle {
-  cursor: grab;
-}
-.drag-handle:active {
-  cursor: grabbing;
+.scanline {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.05);
+  animation: scanline 4s linear infinite;
+  pointer-events: none;
+  z-index: 20;
 }

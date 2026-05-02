@@ -12,6 +12,7 @@ export interface StructuredTitle {
 
 export interface DetailedIncident extends StructuredTitle {
   id: string;
+  title: string;
   narrative: string;
   metar: string | null;
   reportDate: string;
@@ -29,8 +30,7 @@ export class AviationHeraldScraper {
    */
   public static async scrapeArticleDetails(articleId: string): Promise<Partial<DetailedIncident>> {
     const url = `${this.BASE_URL}?article=${articleId}&opt=0`;
-    const proxy = ProxyService.getNextProxy();
-    const config = proxy ? ProxyService.getAxiosConfig(proxy) : {};
+    const config = ProxyService.getAxiosConfig();
 
     try {
       const response = await axios.get(url, {
@@ -56,6 +56,7 @@ export class AviationHeraldScraper {
 
       return {
         id: articleId,
+        title: $('span.headline_article').text().trim(),
         narrative,
         metar,
         reportDate,
@@ -73,8 +74,7 @@ export class AviationHeraldScraper {
    */
   public static async scrapeIncidentList(offset: string = ''): Promise<{title: string, id: string}[]> {
     const url = `${this.BASE_URL}?list=&opt=0&offset=${offset}`;
-    const proxy = ProxyService.getNextProxy();
-    const config = proxy ? ProxyService.getAxiosConfig(proxy) : {};
+    const config = ProxyService.getAxiosConfig();
 
     try {
       const response = await axios.get(url, {
