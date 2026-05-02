@@ -65,12 +65,7 @@ const AirlineLogo: React.FC<AirlineLogoProps> = ({ operator, size = 32 }) => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'rgba(255,255,255,0.05)',
-        borderRadius: '6px',
-        border: '1px solid rgba(255,255,255,0.1)',
-        color: 'white',
-        padding: '4px',
-        boxSizing: 'border-box'
+        color: 'white'
       }}
     >
       <svg width="100%" height="100%" viewBox="0 0 32 32">

@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, useMotionValue, AnimatePresence } from 'framer-motion';
+import AirlineLogo from './AirlineLogo';
+import EventIcon from './EventIcon';
 
 interface ManifestCardData {
   id: string;
@@ -109,19 +111,22 @@ const ManifestStack: React.FC<ManifestStackProps> = ({ cards }) => {
     >
       <div className="scanline"></div>
       
-      {/* Header: Compact 50px Height */}
+      {/* Header: Compact 50px Height with Icons */}
       <div className="manifest-header" style={{ 
         display: 'flex',
-        flexDirection: 'column',
-        gap: '4px',
+        flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center'
+        justifyContent: 'space-between',
+        padding: '0 12px'
       }}>
+        <EventIcon status={card.status} size={20} />
         <div style={{ 
           fontSize: isFocused ? '18px' : '14px', 
           fontWeight: 500, // Reduced from 900
           color: 'white', 
-          opacity: 0.9 
+          opacity: 0.9,
+          textAlign: 'center',
+          flex: 1
         }}>
           {card.aircraft_type || card.aircraft}
         </div>
@@ -159,9 +164,14 @@ const ManifestStack: React.FC<ManifestStackProps> = ({ cards }) => {
         </div>
 
         {/* Operator */}
-        <div style={{ opacity: 0.5, marginTop: isFocused ? '8px' : '4px', marginBottom: '12px' }}>
-          <div className="manifest-label" style={{ fontSize: isFocused ? '0.7rem' : '0.4rem' }}>Operator</div>
-          <div style={{ fontSize: isFocused ? '1.1rem' : '0.65rem', fontWeight: 700, color: 'white' }}>{card.operator}</div>
+        <div style={{ marginTop: isFocused ? '8px' : '4px', marginBottom: '12px' }}>
+          <div className="manifest-label" style={{ fontSize: isFocused ? '0.7rem' : '0.4rem', marginBottom: '11px', color: 'white', opacity: 0.5 }}>Operator</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <AirlineLogo operator={card.operator} size={isFocused ? 26 : 18} />
+            <div style={{ fontSize: isFocused ? '1.1rem' : '0.65rem', fontWeight: 700, color: 'white' }}>
+              {card.operator}
+            </div>
+          </div>
         </div>
 
         {/* Narrative */}
@@ -270,7 +280,11 @@ const ManifestStack: React.FC<ManifestStackProps> = ({ cards }) => {
           dragConstraints={{ top: maxScroll, bottom: 0 }}
           style={{ y: dragY }}
         >
-          {cards.map((card) => renderCardContent(card, false))}
+          {cards.map((card) => (
+            <React.Fragment key={`frag-${card.id}`}>
+              {renderCardContent(card, false)}
+            </React.Fragment>
+          ))}
         </motion.div>
       </div>
 
