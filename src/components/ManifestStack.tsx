@@ -2,8 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, useMotionValue, AnimatePresence } from 'framer-motion';
 import AirlineLogo from './AirlineLogo';
 import EventIcon from './EventIcon';
+import { METARIcon } from './METARIcon';
 
-interface ManifestCardData {
+export interface ManifestCardData {
   id: string;
   source_id?: string;
   operator: string;
@@ -15,66 +16,42 @@ interface ManifestCardData {
   theme: string;
   time: string;
   date?: string;
+  metar?: string;
   narrative: string;
   isNew?: boolean;
-  severity?: string;
-  source?: string;
-  url?: string;
-  metar?: string;
-  icao?: string;
-  last_updated?: string;
+  registration?: string;
+  callsign?: string;
   occurrenceCategory?: string[];
-  occurrenceClass?: string;
 }
 
 interface ManifestStackProps {
-  cards: ManifestCardData[];
+  incidents: ManifestCardData[];
+  selectedId: string | null;
+  setSelectedId: (id: string | null) => void;
 }
 
-const ManifestStack: React.FC<ManifestStackProps> = ({ cards }) => {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const dragY = useMotionValue(0);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  const selectedCard = cards.find(c => c.id === selectedId);
+const ManifestStack: React.FC<ManifestStackProps> = ({ incidents, selectedId, setSelectedId }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const dragY = useMotionValue(0);
   const [maxScroll, setMaxScroll] = useState(0);
 
-  // Dynamic Scroll Calculation
-  useEffect(() => {
-    const updateScroll = () => {
-      if (containerRef.current && scrollRef.current) {
-        const containerH = containerRef.current.offsetHeight;
-        const contentH = scrollRef.current.scrollHeight;
-        
-        // Ensure we can scroll through all content
-        const newMaxScroll = Math.min(0, containerH - contentH);
-        setMaxScroll(newMaxScroll);
+  const cards = incidents || [];
+  const selectedCard = cards.find(c => c.id === selectedId);
 
-        // Clamp current scroll position if it exceeds new bounds
-        const currentY = dragY.get();
-        if (currentY < newMaxScroll) {
-          dragY.set(newMaxScroll);
-        }
+  useEffect(() => {
+    const updateScrollLimit = () => {
+      if (scrollRef.current && containerRef.current) {
+        const limit = containerRef.current.offsetHeight - scrollRef.current.scrollHeight;
+        setMaxScroll(Math.min(0, limit));
       }
     };
-
-    // Initial calculation and observer for content changes
-    updateScroll();
     
-    // Resize listener for responsive height changes
-    window.addEventListener('resize', updateScroll);
-    
-    // Small delay to ensure layout is settled
-    const timer = setTimeout(updateScroll, 100);
+    updateScrollLimit();
+    window.addEventListener('resize', updateScrollLimit);
+    return () => window.removeEventListener('resize', updateScrollLimit);
+  }, [cards]);
 
-    return () => {
-      window.removeEventListener('resize', updateScroll);
-      clearTimeout(timer);
-    };
-  }, [cards, dragY]);
-
-  // Handle Wheel/Touchpad Scrolling
   useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
       if (selectedId) return; // Don't scroll when card is focused
@@ -99,8 +76,8 @@ const ManifestStack: React.FC<ManifestStackProps> = ({ cards }) => {
       className={`manifest-card ${card.theme} ${isFocused ? 'focused-card' : ''}`}
       style={{ 
         zIndex: card.id === selectedId ? 999 : 1,
-        // Ensure focused card in overlay is even higher
-        ...(isFocused ? { zIndex: 1001 } : {})
+        height: isFocused ? 'auto' : '350px',
+        ...(isFocused ? { zIndex: 1001, minHeight: '600px' } : {})
       }}
       onClick={(e) => {
         if (!isFocused) {
@@ -111,152 +88,66 @@ const ManifestStack: React.FC<ManifestStackProps> = ({ cards }) => {
     >
       <div className="scanline"></div>
       
-      {/* Header: Compact 50px Height with Icons */}
-      <div className="manifest-header" style={{ 
-        display: 'flex',
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '0 12px'
-      }}>
-        <EventIcon status={card.status} size={20} />
-        <div style={{ 
-          fontSize: isFocused ? '18px' : '14px', 
-          fontWeight: 500, // Reduced from 900
-          color: 'white', 
-          opacity: 0.9,
-          textAlign: 'center',
-          flex: 1
-        }}>
-          {card.aircraft_type || card.aircraft}
-        </div>
-      </div>
-
-      {/* Grid Content: Adaptive */}
-      <div style={{ 
-        display: 'flex', 
-        flexDirection: 'column', 
-        flexGrow: 1, 
-        padding: isFocused ? '24px' : '12px', 
-        paddingBottom: '60px', // Reserved space for the 50px absolute footer + gap
-        gap: isFocused ? '12px' : '6px',
-        alignItems: 'flex-start',
-        position: 'relative'
-      }}>
-        
-        {/* Date of Event: Enhanced Scale */}
-        <div style={{ 
-          fontSize: isFocused ? '16px' : '10px', 
-          fontWeight: 300, 
-          color: 'white', 
-          opacity: 0.6, // Slightly increased opacity for better contrast at larger size
-          letterSpacing: '0.05em',
-          marginBottom: '2px'
-        }}>
-          {card.date}
+      <div className="shipping-grid">
+        {/* Row 1: AIRCRAFT TYPE | OPERATOR | AIRLINE LOGO */}
+        <div className="shipping-section header">
+           <div className="shipping-box-title" style={{ flexGrow: 1, fontSize: '0.9rem', fontWeight: 100, letterSpacing: '0.15em', fontFamily: 'Outfit, sans-serif', display: 'flex', alignItems: 'center', gap: '12px' }}>
+             <span>{card.aircraft_type || card.aircraft}</span>
+             <span style={{ opacity: 0.3 }}>/</span>
+             <span style={{ fontWeight: 500, fontSize: '0.75rem', opacity: 0.8 }}>{card.operator}</span>
+           </div>
+           <div className="shipping-status-icons" style={{ background: 'transparent', borderLeft: '1px solid rgba(255,255,255,0.08)' }}>
+             <AirlineLogo operator={card.operator} size={36} />
+           </div>
         </div>
 
-        {/* Sector Codes */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: isFocused ? '16px' : '8px' }}>
-          <div className="ticket-code" style={{ fontSize: isFocused ? '2.8rem' : '1.2rem' }}>{card.departure}</div>
-          <div style={{ color: 'var(--theme-color)', fontSize: isFocused ? '1.8rem' : '0.8rem' }}>»</div>
-          <div className="ticket-code" style={{ fontSize: isFocused ? '2.8rem' : '1.2rem' }}>{card.arrival}</div>
+        {/* Row 2: DATE (RED) */}
+        <div className="shipping-section shipping-date-bar">
+           {card.date}
         </div>
 
-        {/* Operator */}
-        <div style={{ marginTop: isFocused ? '8px' : '4px', marginBottom: '12px' }}>
-          <div className="manifest-label" style={{ fontSize: isFocused ? '0.7rem' : '0.4rem', marginBottom: '11px', color: 'white', opacity: 0.5 }}>Operator</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <AirlineLogo operator={card.operator} size={isFocused ? 26 : 18} />
-            <div style={{ fontSize: isFocused ? '1.1rem' : '0.65rem', fontWeight: 700, color: 'white' }}>
-              {card.operator}
-            </div>
-          </div>
-        </div>
-
-        {/* Narrative */}
-        <div style={{ 
-          fontSize: isFocused ? '1rem' : '10px',
-          fontWeight: 100,
-          color: 'white', 
-          opacity: 0.8, 
-          lineHeight: '1.4', 
-          maxHeight: isFocused ? '300px' : '60px', // Reduced to 60px to fit in 320px card
-          overflow: 'hidden',
-          margin: '4px 0',
-          marginBottom: '50px' // Added 50px gap after description
-        }}>
-          {card.narrative}
-        </div>
-
-        {/* Event Descriptors: Outlined Lozenges */}
-        {card.occurrenceCategory && (
-          <div style={{ 
-            display: 'flex', 
-            flexWrap: 'wrap', 
-            gap: '6px', 
-            marginTop: 'auto', 
-            marginBottom: '50px', // Maintained 50px gap after lozenges
-            paddingBottom: '2px'
-          }}>
-            {card.occurrenceCategory.map((cat, idx) => (
-              <div key={idx} style={{
-                fontSize: isFocused ? '0.7rem' : '0.45rem',
-                padding: isFocused ? '4px 12px' : '2px 8px',
-                border: '1px solid rgba(255, 255, 255, 0.3)',
-                borderRadius: '12px',
-                color: 'white',
-                opacity: 0.8,
-                textTransform: 'uppercase',
-                fontWeight: 700,
-                letterSpacing: '0.05em'
-              }}>
-                {cat}
+        {/* Row 3: METAR ICON | SECTOR OPS */}
+        <div className="shipping-section shipping-middle-grid">
+           <div className="shipping-icon-cell">
+              <METARIcon 
+                condition={card.metar?.split(' ').find(s => s.includes('BKN') || s.includes('OVC') || s.includes('FEW') || s.includes('SCT') || s.includes('SKC') || s.includes('RA') || s.includes('TS')) || 'CAVOK'} 
+                size={isFocused ? 48 : 32} 
+              />
+           </div>
+           <div className="shipping-content-cell">
+              <div className="shipping-label">SECTOR CODES</div>
+              <div className="shipping-sector-codes" style={{ fontSize: isFocused ? '3.5rem' : '2.4rem' }}>
+                {card.departure} » {card.arrival}
               </div>
-            ))}
+           </div>
+        </div>
+
+        {/* Row 4: INCIDENT CLASSIFICATION TAGS */}
+        <div className="shipping-section shipping-data-bar" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+           {(card.occurrenceCategory || []).map(tag => (
+             <span key={tag} style={{ 
+               fontSize: '0.8rem', 
+               fontWeight: 900, 
+               background: 'var(--theme-color)', 
+               padding: '2px 8px',
+               color: 'white',
+               letterSpacing: '0.1em'
+             }}>
+               {tag}
+             </span>
+           ))}
+           {(!card.occurrenceCategory || card.occurrenceCategory.length === 0) && (
+             <span style={{ fontSize: '0.8rem', opacity: 0.5 }}>NO CLASSIFICATION</span>
+           )}
+        </div>
+
+        {/* Narrative (Only when focused) */}
+        {isFocused && (
+          <div style={{ padding: '24px', borderTop: '1px solid rgba(255,255,255,0.1)', fontSize: '1rem', opacity: 0.8, lineHeight: 1.6 }}>
+             <div className="shipping-label" style={{ marginBottom: '12px', fontSize: '0.7rem' }}>INCIDENT NARRATIVE</div>
+             {card.narrative}
           </div>
         )}
-      </div>
-
-      {/* Status Core: Base Anchor */}
-      <div style={{ 
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        width: '100%',
-        height: '50px',
-        background: 'var(--rose-red-dark)',
-        zIndex: 50,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}>
-        <div style={{ 
-          fontSize: '0.9rem', 
-          fontWeight: 900, 
-          color: 'white', 
-          letterSpacing: '0.2em',
-          textShadow: '0 2px 4px rgba(0,0,0,0.5)',
-          opacity: 0.9,
-          zIndex: 100
-        }}>
-          {card.status}
-        </div>
-      </div>
-
-      <div className="reflective-shine">
-        <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
-          <defs>
-            <radialGradient id="topperGradient" cx="100%" cy="0%" r="100%" fx="100%" fy="0%">
-              <stop offset="0%" stopColor="white" stopOpacity="0.2" />
-              <stop offset="85%" stopColor="white" stopOpacity="0" />
-            </radialGradient>
-          </defs>
-          <path 
-            d="M 0 0 L 100 0 L 100 100 A 250 250 0 0 0 0 0 Z" 
-            fill="url(#topperGradient)" 
-          />
-        </svg>
       </div>
     </motion.div>
   );
@@ -265,23 +156,16 @@ const ManifestStack: React.FC<ManifestStackProps> = ({ cards }) => {
     <>
       <div 
         ref={containerRef}
-        className="grid-mask-container" 
-        style={{ 
-          opacity: selectedId ? 0.3 : 1, 
-          transition: 'opacity 0.4s',
-          pointerEvents: selectedId ? 'none' : 'all' 
-        }}
+        className="grid-mask-container"
+        style={{ position: 'relative' }}
       >
         <motion.div 
           ref={scrollRef}
           className="grid-scroll-container"
-          drag={selectedId ? false : "y"}
-          whileDrag={{ cursor: 'grabbing' }}
-          dragConstraints={{ top: maxScroll, bottom: 0 }}
           style={{ y: dragY }}
         >
           {cards.map((card) => (
-            <React.Fragment key={`frag-${card.id}`}>
+            <React.Fragment key={card.id}>
               {renderCardContent(card, false)}
             </React.Fragment>
           ))}

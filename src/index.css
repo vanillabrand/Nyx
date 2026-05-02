@@ -194,20 +194,6 @@ h3,
   box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.8);
 }
 
-/* Cherry Anchor System (Footer) */
-.manifest-card::before {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 50px; /* Solid 50px height */
-  background: var(--rose-red-dark);
-  opacity: 1;
-  pointer-events: none;
-  z-index: 1;
-}
-
 /* Top Right Inverted Curved Triangle (Topper) */
 .reflective-shine {
   position: absolute;
@@ -279,6 +265,170 @@ h3,
 }
 
 /* Scanline Animation */
+/* Shipping Label System */
+.shipping-grid {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+}
+
+.shipping-section {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  width: 100%;
+}
+
+.shipping-section:last-child {
+  border-bottom: none;
+}
+
+.shipping-section.header {
+  height: 80px;
+  align-items: stretch;
+}
+
+.shipping-box-title {
+  padding: 12px;
+  font-family: var(--font-header);
+  font-weight: 900;
+  font-size: 2.2rem;
+  display: flex;
+  align-items: center;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  color: white;
+}
+
+.shipping-flight-no {
+  flex-grow: 1;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-desc);
+  font-weight: 700;
+  font-size: 1.5rem;
+  letter-spacing: 0.1em;
+  color: white;
+}
+
+.shipping-status-icons {
+  width: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--theme-color);
+  opacity: 0.8;
+}
+
+.shipping-date-bar {
+  padding: 6px 12px;
+  font-family: var(--font-desc);
+  font-weight: 700;
+  font-size: 1.8rem;
+  color: var(--rose-red);
+  background: rgba(255, 255, 255, 0.02);
+  text-align: center;
+  justify-content: center;
+}
+
+.shipping-middle-grid {
+  flex-grow: 1;
+  display: flex;
+}
+
+.shipping-icon-cell {
+  width: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 10px;
+}
+
+.shipping-content-cell {
+  flex-grow: 1;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.shipping-label {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.5rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  opacity: 0.5;
+  margin-bottom: 4px;
+}
+
+.shipping-sector-codes {
+  font-family: var(--font-header);
+  font-size: 2.4rem;
+  font-weight: 900;
+  line-height: 1;
+  color: white;
+}
+
+.shipping-data-bar {
+  padding: 12px;
+  font-family: var(--font-desc);
+  font-size: 1.1rem;
+  font-weight: 400;
+  color: white;
+  opacity: 0.9;
+  text-transform: uppercase;
+}
+
+.shipping-footer-grid {
+  height: 100px;
+  display: flex;
+}
+
+.shipping-footer-status {
+  padding: 12px;
+  font-family: var(--font-header);
+  font-weight: 700;
+  font-style: italic;
+  font-size: 1.2rem;
+  color: var(--rose-red);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  width: 120px;
+}
+
+.shipping-footer-data {
+  flex-grow: 1;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.shipping-data-row {
+  font-size: 0.7rem;
+  display: flex;
+  gap: 6px;
+}
+
+.shipping-data-row span {
+  font-weight: 700;
+  opacity: 0.4;
+  width: 60px;
+}
+
+.shipping-logo-cell {
+  width: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+}
+
 @keyframes scanline {
   0% {
     transform: translateY(-100%);

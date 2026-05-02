@@ -5,6 +5,7 @@ import ManifestStack from './components/ManifestStack.tsx';
 const App: React.FC = () => {
   // const [selectedIncident, setSelectedIncident] = useState<any>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   // Model state for the stack with accurate 'EVENT_DATE' from headlines
   const [incidents] = useState<any[]>([
@@ -143,7 +144,11 @@ const App: React.FC = () => {
 
         {/* Left Side: Manifest Rolling Grid */}
         <div style={{ gridRow: '2', gridColumn: '1', pointerEvents: 'all', display: 'flex', alignItems: 'center' }}>
-          <ManifestStack cards={incidents} />
+          <ManifestStack 
+            incidents={incidents} 
+            selectedId={selectedId}
+            setSelectedId={setSelectedId}
+          />
         </div>
 
       </div>
