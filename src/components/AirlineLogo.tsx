@@ -1,17 +1,18 @@
 import React from 'react';
 
 interface AirlineLogoProps {
-  operator: string;
+  operator?: string; // Made optional
   size?: number;
 }
 
-const AirlineLogo: React.FC<AirlineLogoProps> = ({ operator, size = 32 }) => {
-  const name = operator.toUpperCase();
+const AirlineLogo: React.FC<AirlineLogoProps> = ({ operator = '', size = 32 }) => {
+  // Ultra-robust check to prevent the 'toUpperCase' crash reported by user
+  const name = String(operator || '').toUpperCase();
 
-  // Simple Stylized SVG Mappings for Major Airlines
   const getLogoPath = () => {
+    if (!name) return <path fill="currentColor" d="M4 28h24c-2-8-6-20-8-24H10c2 4 6 16 8 24H4z" opacity="0.8" />;
+    
     if (name.includes('PORTER')) {
-      // Stylized 'P' with wing
       return (
         <g fill="currentColor">
           <path d="M10 5h12c4 0 6 3 6 6s-2 6-6 6H14v10h-4V5z m4 8h8c2 0 2-2 2-3s-1-3-2-3h-8v6z" />
@@ -20,7 +21,6 @@ const AirlineLogo: React.FC<AirlineLogoProps> = ({ operator, size = 32 }) => {
       );
     }
     if (name.includes('AIR CANADA')) {
-      // Stylized Maple Leaf
       return (
         <g fill="currentColor">
           <path d="M16 2l2 6h6l-5 4 2 6-5-4-5 4 2-6-5-4h6z" />
@@ -29,13 +29,11 @@ const AirlineLogo: React.FC<AirlineLogoProps> = ({ operator, size = 32 }) => {
       );
     }
     if (name.includes('WESTJET')) {
-      // Stylized 'W' Arrow
       return (
         <path fill="currentColor" d="M2 10l6 12 6-12 6 12 6-12h-4l-4 8-4-8-4 8-4-8z" />
       );
     }
     if (name.includes('UNITED')) {
-      // Stylized Globe
       return (
         <g fill="none" stroke="currentColor" strokeWidth="2">
           <circle cx="16" cy="16" r="14" />
@@ -44,13 +42,11 @@ const AirlineLogo: React.FC<AirlineLogoProps> = ({ operator, size = 32 }) => {
       );
     }
     if (name.includes('DELTA')) {
-      // Stylized Triangle (Widget)
       return (
         <path fill="currentColor" d="M16 2L2 28h28L16 2z m0 8l8 16H8l8-16z" />
       );
     }
     
-    // Default: Stylized Aircraft Tail
     return (
       <path fill="currentColor" d="M4 28h24c-2-8-6-20-8-24H10c2 4 6 16 8 24H4z" opacity="0.8" />
     );
@@ -65,7 +61,7 @@ const AirlineLogo: React.FC<AirlineLogoProps> = ({ operator, size = 32 }) => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        color: 'white'
+        color: 'inherit'
       }}
     >
       <svg width="100%" height="100%" viewBox="0 0 32 32">

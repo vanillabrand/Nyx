@@ -159,22 +159,39 @@ h3,
 /* Grid HUD Transformation: 1x3 Vertical Column */
 .grid-mask-container {
   position: relative;
-  width: calc(20vw - 40px); /* Reduced width by 40px */
-  height: 80vh; /* Responsive height to fit screen */
-  max-height: 900px; /* Cap for ultra-wide/tall monitors */
+  width: 485px; /* Matches the larger grid-scroll-container width */
+  height: 800px; /* Precision fit for 3 rows (6 cards) at 0.75 scale */
   overflow: hidden;
   mask-image: linear-gradient(to bottom, black 0%, black 85%, transparent);
   -webkit-mask-image: linear-gradient(to bottom, black 0%, black 85%, transparent);
   pointer-events: all;
+  margin: 0;
+  padding: 0;
+}
+
+@media (max-width: 768px) {
+  .grid-mask-container {
+    width: 100%;
+    height: 40vh;
+    mask-image: none;
+    -webkit-mask-image: none;
+  }
+  .shipping-sector-codes {
+    font-size: 1.5rem !important;
+  }
+  .shipping-box-title {
+    font-size: 0.8rem !important;
+  }
 }
 
 .grid-scroll-container {
   display: grid;
-  grid-template-columns: 1fr;
-  /* 1 Column */
-  gap: 20px;
-  width: 100%;
-  padding-bottom: 400px; /* Ensure last card can scroll fully into view */
+  grid-template-columns: repeat(2, 240px);
+  gap: 5px;
+  width: 485px;
+  margin: 0;
+  padding: 0;
+  padding-bottom: 400px;
 }
 
 .manifest-card {
@@ -314,11 +331,15 @@ h3,
 
 .shipping-status-icons {
   width: 80px;
+  height: 80px;
+  min-width: 80px;
+  aspect-ratio: 1 / 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--theme-color);
-  opacity: 0.8;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--rose-red);
+  flex-shrink: 0;
 }
 
 .shipping-date-bar {

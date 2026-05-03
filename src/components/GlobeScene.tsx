@@ -166,8 +166,8 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
         });
 
         // Global Uniform Distribution: Shuffle then slice to prevent regional clustering
-        if (flights.length > 1200) {
-          flights = flights.sort(() => Math.random() - 0.5).slice(0, 1200);
+        if (flights.length > 400) {
+          flights = flights.sort(() => Math.random() - 0.5).slice(0, 400);
         }
         
         // If API fails completely, show a global simulation so the world isn't empty
@@ -311,4 +311,4 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
   return <div ref={mountRef} style={{ width: '100%', height: '100%' }} />;
 };
 
-export default GlobeScene;
+export default React.memo(GlobeScene);

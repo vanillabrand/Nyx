@@ -11,13 +11,13 @@ export class AutomationService {
 
   constructor() {
     this.neo4j = new Neo4jService();
-    this.logPath = path.join(process.cwd(), 'data', 'automation_log.json');
+    this.logPath = path.join(process.cwd(), 'public', 'data', 'automation_log.json');
     
     const mission = {
       mission_id: 'AUTOMATION_SYNC',
       targets: ['https://avherald.com/h?list=&opt=0'],
       engine_config: {
-        depth_per_url: 1,
+        depth_per_url: 2,
         concurrency: 5,
         timeout_ms: 15000,
         retry_limit: 3
@@ -25,7 +25,7 @@ export class AutomationService {
       extraction_mode: 'FULL' as const,
       output_settings: {
         format: 'json' as const,
-        path: './data/automation'
+        path: './public/data/automation'
       }
     };
     
@@ -51,12 +51,17 @@ export class AutomationService {
       const results = await this.scraper.execute();
       
       if (results && results.length > 0) {
-        // 2. Ingest into Neo4j (Relational Schema)
-        const ingestedCount = await this.neo4j.bulkIngestIncidents(results);
-        console.log(`✅ [Automation] Cycle complete. Ingested ${ingestedCount} new records.`);
-        
-        // 3. Update local state log for Frontend polling
-        this.updateSyncLog(ingestedCount);
+        // 2. Update local state log and data for Frontend polling (Priority)
+        this.updateSyncLog(results.length, results);
+        console.log(`📡 [Automation] Local data stream updated with ${results.length} records.`);
+
+        // 3. Attempt Ingest into Neo4j (Relational Schema)
+        try {
+          const ingestedCount = await this.neo4j.bulkIngestIncidents(results);
+          console.log(`✅ [Automation] Neo4j sync complete. Ingested ${ingestedCount} records.`);
+        } catch (dbError) {
+          console.warn('⚠️ [Automation] Neo4j Sync failed (DB offline?), but local stream is ACTIVE.');
+        }
       }
     } catch (error) {
       console.error('❌ [Automation] Cycle failed:', error);
@@ -69,12 +74,16 @@ export class AutomationService {
     }
   }
 
-  private updateSyncLog(count: number) {
+  private updateSyncLog(count: number, results: any[]) {
     const log = {
       last_sync: new Date().toISOString(),
       new_items: count,
       status: 'ACTIVE'
     };
     fs.writeFileSync(this.logPath, JSON.stringify(log, null, 2));
+    
+    // Also save latest incidents for frontend consumption
+    const incidentsPath = path.join(process.cwd(), 'public', 'data', 'incidents.json');
+    fs.writeFileSync(incidentsPath, JSON.stringify(results, null, 2));
   }
 }

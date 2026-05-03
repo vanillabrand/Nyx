@@ -1,12 +1,12 @@
 import React from 'react';
 
 interface EventIconProps {
-  status: string;
+  status?: string;
   size?: number;
 }
 
-const EventIcon: React.FC<EventIconProps> = ({ status, size = 24 }) => {
-  const s = status.toUpperCase();
+const EventIcon: React.FC<EventIconProps> = ({ status = '', size = 24 }) => {
+  const s = (status || '').toUpperCase();
 
   const getIcon = () => {
     switch (s) {
@@ -22,49 +22,35 @@ const EventIcon: React.FC<EventIconProps> = ({ status, size = 24 }) => {
       case 'ACCIDENT':
         return (
           <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            {/* Warning triangle with impact */}
-            <path d="M12 2L2 20h20L12 2z" />
-            <path d="M12 8v4" />
-            <circle cx="12" cy="16" r="1" fill="currentColor" />
-          </g>
-        );
-      case 'MONITORING':
-        return (
-          <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            {/* Pulse wave / Radar */}
-            <path d="M2 12h4l3-6 6 12 3-6h4" />
+            {/* Warning triangle with alert symbol */}
+            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+            <line x1="12" y1="9" x2="12" y2="13" />
+            <line x1="12" y1="17" x2="12.01" y2="17" />
           </g>
         );
       case 'NEWS':
       default:
         return (
           <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            {/* Signal waves / Broadcast */}
-            <path d="M12 20v-8" />
-            <path d="M8 12a4 4 0 0 1 8 0" />
-            <path d="M4 8a8 8 0 0 1 16 0" />
+            {/* Signal/Monitoring radar icon */}
+            <circle cx="12" cy="12" r="3" />
+            <path d="M12 2v2M12 20v2M2 12h2M20 12h2" />
+            <path d="M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
           </g>
         );
     }
   };
 
   return (
-    <div 
-      style={{ 
-        width: size, 
-        height: size, 
-        color: 'white',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        opacity: 0.85
-      }}
+    <svg 
+      width={size} 
+      height={size} 
+      viewBox="0 0 24 24"
+      style={{ display: 'block' }}
     >
-      <svg viewBox="0 0 24 24" width="100%" height="100%">
-        {getIcon()}
-      </svg>
-    </div>
+      {getIcon()}
+    </svg>
   );
 };
 
-export default EventIcon;
+export default React.memo(EventIcon);

@@ -9,21 +9,22 @@ export class ProxyService {
   private static HTTP_URL = process.env.PROXY_URL;
 
   /**
-   * Returns a SOCKS5 agent if configured, otherwise an HTTP agent.
-   * Optimized for high-speed concurrent requests.
+   * Returns a high-resilience proxy agent.
+   * Prioritizes SOCKS5 for tactical TLS stability.
    */
   public static getAgent() {
+    // Prefer SOCKS5 for TLS bypass stability
     if (this.SOCKS5_URL) {
       return new SocksProxyAgent(this.SOCKS5_URL, {
         keepAlive: true,
-        timeout: 5000
+        timeout: 30000 // 30s timeout for mission-critical requests
       });
     }
     
     if (this.HTTP_URL) {
       return new HttpsProxyAgent(this.HTTP_URL, {
         keepAlive: true,
-        timeout: 5000,
+        timeout: 30000,
         rejectUnauthorized: false
       });
     }
@@ -36,13 +37,13 @@ export class ProxyService {
    */
   public static getAxiosConfig() {
     const agent = this.getAgent();
-    if (!agent) return {};
+    if (!agent) return { timeout: 30000 };
 
     return {
       httpAgent: agent,
       httpsAgent: agent,
-      proxy: false as const, // Important: tell axios not to use its internal proxy logic
-      timeout: 5000
+      proxy: false as const,
+      timeout: 30000
     };
   }
 }

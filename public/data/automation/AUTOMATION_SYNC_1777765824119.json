@@ -1,0 +1,661 @@
+[
+  {
+    "source_id": "538abb65",
+    "occurred_at": "May 2nd 2026",
+    "headline": "Incident: Delta A339 over Atlantic on May 2nd 2026, engine problem",
+    "url": "https://avherald.com/h?article=538abb65&opt=0",
+    "source": "AVHERALD",
+    "meta": {
+      "narrative": "",
+      "metar": "",
+      "aircraft_type": "A339",
+      "operator": "Atlantic",
+      "airport_icao": null,
+      "severity": "Incident"
+    }
+  },
+  {
+    "source_id": "538a2c0a",
+    "occurred_at": "Apr 30th 2026",
+    "headline": "Incident: United B752 near Newark on Apr 30th 2026, pitot heater not working",
+    "url": "https://avherald.com/h?article=538a2c0a&opt=0",
+    "source": "AVHERALD",
+    "meta": {
+      "narrative": "",
+      "metar": "",
+      "aircraft_type": "B752",
+      "operator": "United",
+      "airport_icao": null,
+      "severity": "Incident"
+    }
+  },
+  {
+    "source_id": "538a1bdb",
+    "occurred_at": "Apr 30th 2026",
+    "headline": "Incident: United B739 near Chicago on Apr 30th 2026, odour in cabin",
+    "url": "https://avherald.com/h?article=538a1bdb&opt=0",
+    "source": "AVHERALD",
+    "meta": {
+      "narrative": "",
+      "metar": "",
+      "aircraft_type": "B739",
+      "operator": "United",
+      "airport_icao": null,
+      "severity": "Incident"
+    }
+  },
+  {
+    "source_id": "538a1707",
+    "occurred_at": "Apr 30th 2026",
+    "headline": "Incident: Azul E295 and Gol B738 at Sao Paulo on Apr 30th 2026, near collision between takeoff and go around",
+    "url": "https://avherald.com/h?article=538a1707&opt=0",
+    "source": "AVHERALD",
+    "meta": {
+      "narrative": "",
+      "metar": "",
+      "aircraft_type": "B738",
+      "operator": "Azul",
+      "airport_icao": null,
+      "severity": "Incident"
+    }
+  },
+  {
+    "source_id": "5389793b",
+    "occurred_at": "Feb 11th 2026",
+    "headline": "Incident: American A319 near Charlotte on Feb 11th 2026, both generators failed, RAT deployed",
+    "url": "https://avherald.com/h?article=5389793b&opt=0",
+    "source": "AVHERALD",
+    "meta": {
+      "narrative": "",
+      "metar": "",
+      "aircraft_type": "A319",
+      "operator": "American",
+      "airport_icao": null,
+      "severity": "Incident"
+    }
+  },
+  {
+    "source_id": "5362bc2a",
+    "occurred_at": "Mar 5th 2026",
+    "headline": "Incident: American A321 near Baltimore on Mar 5th 2026, electrical problems, RAT deployed",
+    "url": "https://avherald.com/h?article=5362bc2a&opt=0",
+    "source": "AVHERALD",
+    "meta": {
+      "narrative": "",
+      "metar": "",
+      "aircraft_type": "A321",
+      "operator": "American",
+      "airport_icao": null,
+      "severity": "Incident"
+    }
+  },
+  {
+    "source_id": "536954bc",
+    "occurred_at": "Mar 19th 2026",
+    "headline": "Incident: Delta A319 enroute on Mar 19th 2026, generator problems, RAT deployed",
+    "url": "https://avherald.com/h?article=536954bc&opt=0",
+    "source": "AVHERALD",
+    "meta": {
+      "narrative": "",
+      "metar": "",
+      "aircraft_type": "A319",
+      "operator": "Delta",
+      "airport_icao": null,
+      "severity": "Incident"
+    }
+  },
+  {
+    "source_id": "5383ba37",
+    "occurred_at": "Apr 19th 2026",
+    "headline": "Accident: PAL A320 near Iloilo on Apr 19th 2026, air conditioning problems",
+    "url": "https://avherald.com/h?article=5383ba37&opt=0",
+    "source": "AVHERALD",
+    "meta": {
+      "narrative": "",
+      "metar": "",
+      "aircraft_type": "A320",
+      "operator": "PAL",
+      "airport_icao": null,
+      "severity": "Accident"
+    }
+  },
+  {
+    "source_id": "538975b2",
+    "occurred_at": "Apr 27th 2026",
+    "headline": "Incident: Jet2 B738 at Leeds on Apr 27th 2026, bird strike",
+    "url": "https://avherald.com/h?article=538975b2&opt=0",
+    "source": "AVHERALD",
+    "meta": {
+      "narrative": "",
+      "metar": "",
+      "aircraft_type": "B738",
+      "operator": "jet2",
+      "airport_icao": null,
+      "severity": "Incident"
+    }
+  },
+  {
+    "source_id": "5239938e",
+    "occurred_at": "Feb 2nd 2025",
+    "headline": "Accident: United A319 at Houston on Feb 2nd 2025, rejected takeoff due to engine failure",
+    "url": "https://avherald.com/h?article=5239938e&opt=0",
+    "source": "AVHERALD",
+    "meta": {
+      "narrative": "",
+      "metar": "",
+      "aircraft_type": "A319",
+      "operator": "United",
+      "airport_icao": null,
+      "severity": "Accident"
+    }
+  },
+  {
+    "source_id": "53895e5b",
+    "occurred_at": "Apr 29th 2026",
+    "headline": "Incident: United B739 near Grand Junction on Apr 29th 2026, burning odour on board",
+    "url": "https://avherald.com/h?article=53895e5b&opt=0",
+    "source": "AVHERALD",
+    "meta": {
+      "narrative": "",
+      "metar": "",
+      "aircraft_type": "B739",
+      "operator": "United",
+      "airport_icao": null,
+      "severity": "Incident"
+    }
+  },
+  {
+    "source_id": "5388de5e",
+    "occurred_at": "Feb 22nd 2026",
+    "headline": "Incident: Porter E295 at Edmonton and Toronto on Feb 22nd 2026, passenger observed tyre separating on departure",
+    "url": "https://avherald.com/h?article=5388de5e&opt=0",
+    "source": "AVHERALD",
+    "meta": {
+      "narrative": "",
+      "metar": "",
+      "aircraft_type": "E295",
+      "operator": "Porter",
+      "airport_icao": null,
+      "severity": "Incident"
+    }
+  },
+  {
+    "source_id": "5388dcc2",
+    "occurred_at": "Apr 25th 2026",
+    "headline": "Incident: Calm AT72 at Arviat on Apr 25th 2026, runway excursion",
+    "url": "https://avherald.com/h?article=5388dcc2&opt=0",
+    "source": "AVHERALD",
+    "meta": {
+      "narrative": "",
+      "metar": "",
+      "aircraft_type": "AT72",
+      "operator": "Calm",
+      "airport_icao": null,
+      "severity": "Incident"
+    }
+  },
+  {
+    "source_id": "5388c415",
+    "occurred_at": "Feb 27th 2026",
+    "headline": "Incident: Smartwings B738 near Athens on Feb 27th 2026, temporary loss of right engine thrust",
+    "url": "https://avherald.com/h?article=5388c415&opt=0",
+    "source": "AVHERALD",
+    "meta": {
+      "narrative": "",
+      "metar": "",
+      "aircraft_type": "B738",
+      "operator": "Smartwings",
+      "airport_icao": null,
+      "severity": "Incident"
+    }
+  },
+  {
+    "source_id": "5388c104",
+    "occurred_at": "Jan 29th 2026",
+    "headline": "Incident: Smartwings B38M near Valencia on Jan 29th 2026, engine problem",
+    "url": "https://avherald.com/h?article=5388c104&opt=0",
+    "source": "AVHERALD",
+    "meta": {
+      "narrative": "",
+      "metar": "",
+      "aircraft_type": "B38M",
+      "operator": "Smartwings",
+      "airport_icao": null,
+      "severity": "Incident"
+    }
+  },
+  {
+    "source_id": "534c2929",
+    "occurred_at": "",
+    "headline": "",
+    "url": "https://avherald.com/h?article=534c2929&opt=0",
+    "source": "AVHERALD",
+    "meta": {
+      "narrative": "",
+      "metar": "",
+      "aircraft_type": null,
+      "operator": null,
+      "airport_icao": null,
+      "severity": "Incident"
+    }
+  },
+  {
+    "source_id": "51ffac59",
+    "occurred_at": "Nov 8th 2024",
+    "headline": "Incident: Qantas B738 at Sydney on Nov 8th 2024, engine failure on departure sets grass alight",
+    "url": "https://avherald.com/h?article=51ffac59&opt=0",
+    "source": "AVHERALD",
+    "meta": {
+      "narrative": "",
+      "metar": "",
+      "aircraft_type": "B738",
+      "operator": "Qantas",
+      "airport_icao": null,
+      "severity": "Incident"
+    }
+  },
+  {
+    "source_id": "5388a27c",
+    "occurred_at": "Apr 24th 2026",
+    "headline": "Incident: Qatar B772 at Houston on Apr 24th 2026, runway incursion",
+    "url": "https://avherald.com/h?article=5388a27c&opt=0",
+    "source": "AVHERALD",
+    "meta": {
+      "narrative": "",
+      "metar": "",
+      "aircraft_type": "B772",
+      "operator": "Qatar",
+      "airport_icao": null,
+      "severity": "Incident"
+    }
+  },
+  {
+    "source_id": "53882e78",
+    "occurred_at": "Apr 27th 2026",
+    "headline": "Incident: Norwegian B738 at Malaga and Copenhagen on Apr 27th 2026, engine oil leak",
+    "url": "https://avherald.com/h?article=53882e78&opt=0",
+    "source": "AVHERALD",
+    "meta": {
+      "narrative": "",
+      "metar": "",
+      "aircraft_type": "B738",
+      "operator": "Norwegian",
+      "airport_icao": null,
+      "severity": "Incident"
+    }
+  },
+  {
+    "source_id": "538789b8",
+    "occurred_at": "Apr 26th 2026",
+    "headline": "Incident: Delta A321 near Milwaukee on Apr 26th 2026, smoke and fire on board",
+    "url": "https://avherald.com/h?article=538789b8&opt=0",
+    "source": "AVHERALD",
+    "meta": {
+      "narrative": "",
+      "metar": "",
+      "aircraft_type": "A321",
+      "operator": "Delta",
+      "airport_icao": null,
+      "severity": "Incident"
+    }
+  },
+  {
+    "source_id": "53877234",
+    "occurred_at": "Apr 5th 2026",
+    "headline": "Incident: Malta Air B738 at Gothenburg on Apr 5th 2026, difficulty to control after go around, descent during go around",
+    "url": "https://avherald.com/h?article=53877234&opt=0",
+    "source": "AVHERALD",
+    "meta": {
+      "narrative": "",
+      "metar": "",
+      "aircraft_type": "B738",
+      "operator": "Malta",
+      "airport_icao": null,
+      "severity": "Incident"
+    }
+  },
+  {
+    "source_id": "5386ecb7",
+    "occurred_at": "Apr 26th 2026",
+    "headline": "Incident: Delta B712 at Louisville on Apr 26th 2026, engine compressor stall",
+    "url": "https://avherald.com/h?article=5386ecb7&opt=0",
+    "source": "AVHERALD",
+    "meta": {
+      "narrative": "",
+      "metar": "",
+      "aircraft_type": "B712",
+      "operator": "Delta",
+      "airport_icao": null,
+      "severity": "Incident"
+    }
+  },
+  {
+    "source_id": "5386949b",
+    "occurred_at": "Apr 26th 2026",
+    "headline": "Accident: Swiss A333 at Delhi on Apr 26th 2026, rejected takeoff due to engine failure",
+    "url": "https://avherald.com/h?article=5386949b&opt=0",
+    "source": "AVHERALD",
+    "meta": {
+      "narrative": "",
+      "metar": "",
+      "aircraft_type": "A333",
+      "operator": "Swiss",
+      "airport_icao": null,
+      "severity": "Accident"
+    }
+  },
+  {
+    "source_id": "53875b02",
+    "occurred_at": "Apr 26th 2026",
+    "headline": "Incident: BAW B772 near London on Apr 26th 2026, electrical burning odour",
+    "url": "https://avherald.com/h?article=53875b02&opt=0",
+    "source": "AVHERALD",
+    "meta": {
+      "narrative": "",
+      "metar": "",
+      "aircraft_type": "B772",
+      "operator": "BAW",
+      "airport_icao": null,
+      "severity": "Incident"
+    }
+  },
+  {
+    "source_id": "5386b221",
+    "occurred_at": "Apr 25th 2026",
+    "headline": "Incident: ANZ DH8C near Auckland on Apr 25th 2026, hydraulic problems",
+    "url": "https://avherald.com/h?article=5386b221&opt=0",
+    "source": "AVHERALD",
+    "meta": {
+      "narrative": "",
+      "metar": "",
+      "aircraft_type": "DH8C",
+      "operator": "ANZ",
+      "airport_icao": null,
+      "severity": "Incident"
+    }
+  },
+  {
+    "source_id": "538608d2",
+    "occurred_at": "Mar 5th 2026",
+    "headline": "Incident: UPS B752 at Louisville on Mar 5th 2026, unreliable air data",
+    "url": "https://avherald.com/h?article=538608d2&opt=0",
+    "source": "AVHERALD",
+    "meta": {
+      "narrative": "",
+      "metar": "",
+      "aircraft_type": "B752",
+      "operator": "UPS",
+      "airport_icao": null,
+      "severity": "Incident"
+    }
+  },
+  {
+    "source_id": "53858237",
+    "occurred_at": "",
+    "headline": "United B789 near Singapore on Apr 24th 2026, electrical smell on board",
+    "url": "https://avherald.com/h?article=53858237&opt=0",
+    "source": "AVHERALD"
+  },
+  {
+    "source_id": "53857fd9",
+    "occurred_at": "Jul 25th 2025",
+    "headline": "Report: Alliance E190 at Cairns on Jul 25th 2025, retracted gear above maximum retraction speed",
+    "url": "https://avherald.com/h?article=53857fd9&opt=0",
+    "source": "AVHERALD",
+    "meta": {
+      "narrative": "",
+      "metar": "",
+      "aircraft_type": "E190",
+      "operator": "Alliance",
+      "airport_icao": null,
+      "severity": "Incident"
+    }
+  },
+  {
+    "source_id": "53856b42",
+    "occurred_at": "Apr 24th 2026",
+    "headline": "Accident: EBB E120 at Mandera on Apr 24th 2026, runway excursion on landing",
+    "url": "https://avherald.com/h?article=53856b42&opt=0",
+    "source": "AVHERALD",
+    "meta": {
+      "narrative": "",
+      "metar": "",
+      "aircraft_type": "E120",
+      "operator": null,
+      "airport_icao": null,
+      "severity": "Accident"
+    }
+  },
+  {
+    "source_id": "536bb98e",
+    "occurred_at": "Mar 22nd 2026",
+    "headline": "Accident: Jazz CRJ9 at New York on Mar 22nd 2026, collision with fire truck on runway",
+    "url": "https://avherald.com/h?article=536bb98e&opt=0",
+    "source": "AVHERALD",
+    "meta": {
+      "narrative": "",
+      "metar": "",
+      "aircraft_type": "CRJ9",
+      "operator": "Jazz",
+      "airport_icao": null,
+      "severity": "Accident"
+    }
+  },
+  {
+    "source_id": "5384c27f",
+    "occurred_at": "Apr 21st 2026",
+    "headline": "Incident: Frontier A21N near Orlando on Apr 21st 2026, cracked windshield",
+    "url": "https://avherald.com/h?article=5384c27f&opt=0",
+    "source": "AVHERALD",
+    "meta": {
+      "narrative": "",
+      "metar": "",
+      "aircraft_type": "A21n",
+      "operator": "Frontier",
+      "airport_icao": null,
+      "severity": "Incident"
+    }
+  },
+  {
+    "source_id": "5383c0ba",
+    "occurred_at": "Mar 16th 2026",
+    "headline": "Incident: Westjet B38M at Vancouver on Mar 16th 2026, first officer incapacitated",
+    "url": "https://avherald.com/h?article=5383c0ba&opt=0",
+    "source": "AVHERALD",
+    "meta": {
+      "narrative": "",
+      "metar": "",
+      "aircraft_type": "B38M",
+      "operator": "First",
+      "airport_icao": null,
+      "severity": "Incident"
+    }
+  },
+  {
+    "source_id": "5383bfd6",
+    "occurred_at": "Apr 5th 2026",
+    "headline": "Incident: Westjet B738 at Mazatlan on Apr 5th 2026, landed below final fuel reserve",
+    "url": "https://avherald.com/h?article=5383bfd6&opt=0",
+    "source": "AVHERALD",
+    "meta": {
+      "narrative": "",
+      "metar": "",
+      "aircraft_type": "B738",
+      "operator": "Westjet",
+      "airport_icao": null,
+      "severity": "Incident"
+    }
+  },
+  {
+    "source_id": "5383a25e",
+    "occurred_at": "Apr 18th 2026",
+    "headline": "Incident: Air Malta A20N near Malta on Apr 18th 2026, crew rostering problem",
+    "url": "https://avherald.com/h?article=5383a25e&opt=0",
+    "source": "AVHERALD",
+    "meta": {
+      "narrative": "",
+      "metar": "",
+      "aircraft_type": "A20n",
+      "operator": "Air Malta",
+      "airport_icao": null,
+      "severity": "Incident"
+    }
+  },
+  {
+    "source_id": "5383910d",
+    "occurred_at": "Apr 20th 2026",
+    "headline": "Incident: Republic E175 and Jazz E175 at New York on Apr 20th 2026, loss of separation",
+    "url": "https://avherald.com/h?article=5383910d&opt=0",
+    "source": "AVHERALD",
+    "meta": {
+      "narrative": "",
+      "metar": "",
+      "aircraft_type": "E175",
+      "operator": "Jazz",
+      "airport_icao": null,
+      "severity": "Incident"
+    }
+  },
+  {
+    "source_id": "538279bc",
+    "occurred_at": "Mar 27th 2024",
+    "headline": "Report: Sichuan A320 near Harbin on Mar 27th 2024, dual generator failure",
+    "url": "https://avherald.com/h?article=538279bc&opt=0",
+    "source": "AVHERALD",
+    "meta": {
+      "narrative": "",
+      "metar": "",
+      "aircraft_type": "A320",
+      "operator": "Sichuan",
+      "airport_icao": null,
+      "severity": "Incident"
+    }
+  },
+  {
+    "source_id": "5382785e",
+    "occurred_at": "Feb 22nd 2024",
+    "headline": "Report: Tibet A319 at Lhasa on Feb 22nd 2024, runway excursion on landing",
+    "url": "https://avherald.com/h?article=5382785e&opt=0",
+    "source": "AVHERALD",
+    "meta": {
+      "narrative": "",
+      "metar": "",
+      "aircraft_type": "A319",
+      "operator": "Tibet",
+      "airport_icao": null,
+      "severity": "Incident"
+    }
+  },
+  {
+    "source_id": "53821e0c",
+    "occurred_at": "Apr 18th 2026",
+    "headline": "Incident: Southwest B38M and B738 at Nashville on Apr 18th 2026, TCAS saves the day",
+    "url": "https://avherald.com/h?article=53821e0c&opt=0",
+    "source": "AVHERALD",
+    "meta": {
+      "narrative": "",
+      "metar": "",
+      "aircraft_type": "B738",
+      "operator": "Southwest",
+      "airport_icao": "TCAS",
+      "severity": "Incident"
+    }
+  },
+  {
+    "source_id": "53814f9d",
+    "occurred_at": "Apr 8th 2026",
+    "headline": "Accident: Southwest B737 at Las Vegas on Apr 8th 2026, HUD takes captain down",
+    "url": "https://avherald.com/h?article=53814f9d&opt=0",
+    "source": "AVHERALD",
+    "meta": {
+      "narrative": "",
+      "metar": "",
+      "aircraft_type": "B737",
+      "operator": "LAS",
+      "airport_icao": null,
+      "severity": "Accident"
+    }
+  },
+  {
+    "source_id": "53814d33",
+    "occurred_at": "Apr 20th 2026",
+    "headline": "Incident: Qantaslink DH8D near Townsville on Apr 20th 2026, rudder problems",
+    "url": "https://avherald.com/h?article=53814d33&opt=0",
+    "source": "AVHERALD",
+    "meta": {
+      "narrative": "",
+      "metar": "",
+      "aircraft_type": "DH8D",
+      "operator": "Qantaslink",
+      "airport_icao": null,
+      "severity": "Incident"
+    }
+  },
+  {
+    "source_id": "53814a7c",
+    "occurred_at": "Apr 18th 2026",
+    "headline": "Incident: Qantas B738 near Rockhampton on Apr 18th 2026, cargo smoke indication",
+    "url": "https://avherald.com/h?article=53814a7c&opt=0",
+    "source": "AVHERALD",
+    "meta": {
+      "narrative": "",
+      "metar": "",
+      "aircraft_type": "B738",
+      "operator": "Qantas",
+      "airport_icao": null,
+      "severity": "Incident"
+    }
+  },
+  {
+    "source_id": "53814571",
+    "occurred_at": "Apr 19th 2026",
+    "headline": "Incident: TAP A21N near Paris on Apr 19th 2026, smoke on board",
+    "url": "https://avherald.com/h?article=53814571&opt=0",
+    "source": "AVHERALD",
+    "meta": {
+      "narrative": "",
+      "metar": "",
+      "aircraft_type": "A21n",
+      "operator": "TAP",
+      "airport_icao": null,
+      "severity": "Incident"
+    }
+  },
+  {
+    "source_id": "5380cd1f",
+    "occurred_at": "",
+    "headline": "China Airlines B744 near Whitehorse on Apr 18th 2026, smoke indication on board",
+    "url": "https://avherald.com/h?article=5380cd1f&opt=0",
+    "source": "AVHERALD"
+  },
+  {
+    "source_id": "537f6a09",
+    "occurred_at": "Apr 16th 2026",
+    "headline": "Incident: KLM B772 at Amsterdam on Apr 16th 2026, smoke indication",
+    "url": "https://avherald.com/h?article=537f6a09&opt=0",
+    "source": "AVHERALD",
+    "meta": {
+      "narrative": "",
+      "metar": "",
+      "aircraft_type": "B772",
+      "operator": "Amsterdam",
+      "airport_icao": null,
+      "severity": "Incident"
+    }
+  },
+  {
+    "source_id": "537f6902",
+    "occurred_at": "Apr 17th 2026",
+    "headline": "Incident: Jetblue A321 near Chicago on Apr 17th 2026, odour in cabin",
+    "url": "https://avherald.com/h?article=537f6902&opt=0",
+    "source": "AVHERALD",
+    "meta": {
+      "narrative": "",
+      "metar": "",
+      "aircraft_type": "A321",
+      "operator": "Jetblue",
+      "airport_icao": null,
+      "severity": "Incident"
+    }
+  }
+]

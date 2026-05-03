@@ -16,27 +16,59 @@ export class ProAngelos_ParallelScraper {
     this.limit = pLimit(this.mission.engine_config.concurrency);
   }
 
+  private async safeRequest(url: string, retries = 3): Promise<any> {
+    const axiosConfig = ProxyService.getAxiosConfig();
+    for (let i = 0; i < retries; i++) {
+      try {
+        return await axios.get(url, {
+          ...axiosConfig,
+          headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+          timeout: 30000
+        });
+      } catch (e: any) {
+        if (i === retries - 1) throw e;
+        console.warn(`⚠️ [HUD] Connection retry ${i + 1}/3 for ${url}`);
+        await new Promise(r => setTimeout(r, 2000));
+      }
+    }
+  }
+
   async execute() {
     console.log(`[${this.mission.mission_id}] ⚡ Starting high-velocity mission...`);
-    const tasks = this.mission.targets.map(target => this.processTarget(target));
-    const results = await Promise.all(tasks);
+    const targetsData = await Promise.all(this.mission.targets.map(target => this.processTarget(target)));
+    const flatTargets = targetsData.flat().filter(Boolean);
+    
+    console.log(`[${this.mission.mission_id}] 📡 Found ${flatTargets.length} index records. Hydrating deep intelligence...`);
+
+    const hydratedResults = await Promise.all(
+      flatTargets.map(incident => 
+        this.limit(async () => {
+          try {
+            const details = await this.scrapeDetails(incident.url);
+            return { ...incident, ...details };
+          } catch (e) {
+            console.error(`❌ [HUD] Hydration failed: ${incident.url}`);
+            return incident;
+          }
+        })
+      )
+    );
     
     const uniqueMap = new Map<string, ScrapedIncident>();
-    results.flat().filter(Boolean).forEach(incident => {
-      if (!uniqueMap.has(incident.source_id)) {
-        uniqueMap.set(incident.source_id, incident);
-      }
+    hydratedResults.filter(Boolean).forEach((incident: any) => {
+      const id = String(incident.source_id).toUpperCase();
+      if (!uniqueMap.has(id)) uniqueMap.set(id, incident);
     });
 
     const flattened = Array.from(uniqueMap.values());
     this.saveResults(flattened);
-    console.log(`[${this.mission.mission_id}] 🎯 Mission accomplished. Total unique records: ${flattened.length}`);
+    console.log(`[${this.mission.mission_id}] 🎯 Mission accomplished. Unique records: ${flattened.length}`);
     return flattened;
   }
 
   private async processTarget(baseUrl: string) {
     if (baseUrl.includes('article=')) {
-      return [await this.limit(() => this.scrapeDetails(baseUrl, true))];
+      return [await this.limit(() => this.scrapeDetails(baseUrl))];
     }
     const pagePromises = [];
     for (let p = 1; p <= this.mission.engine_config.depth_per_url; p++) {
@@ -48,112 +80,127 @@ export class ProAngelos_ParallelScraper {
   }
 
   private async scrapeIndexPage(url: string): Promise<ScrapedIncident[]> {
-    const axiosConfig = ProxyService.getAxiosConfig();
     try {
-      const response = await axios.get(url, { 
-        ...axiosConfig, 
-        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
-        timeout: this.mission.engine_config.timeout_ms 
-      });
+      const response = await this.safeRequest(url);
       const $ = cheerio.load(response.data);
       const pageIncidents: ScrapedIncident[] = [];
       let currentDate = '';
 
-      $('td').each((_, td) => {
-        const span = $(td).find('span.headline_avherald');
-        if (span.length > 0) {
-          const link = $(td).find('a[href^="/h?article="]');
-          if (link.length > 0) {
-            pageIncidents.push({
-              source_id: link.attr('href')?.split('article=')[1]?.split('&')[0] || '',
-              occurred_at: currentDate,
-              headline: span.text().trim(),
-              url: `https://avherald.com${link.attr('href')}`,
-              source: 'AVHERALD'
-            });
-          } else {
-            currentDate = span.text().trim();
-          }
+      $('tr').each((_, tr) => {
+        const text = $(tr).text().trim();
+        if (text.match(/^[A-Z][a-z]+ [A-Z][a-z]+ \d{1,2}(?:st|nd|rd|th)? \d{4}/i)) {
+          currentDate = text;
+          return;
+        }
+
+        const link = $(tr).find('a[href*="article="]');
+        const headlineSpan = $(tr).find('span.headline, span.headline_avherald');
+        
+        if (link.length > 0 && headlineSpan.length > 0) {
+          pageIncidents.push({
+            source_id: link.attr('href')?.split('article=')[1]?.split('&')[0] || '',
+            occurred_at: currentDate || 'RECENT',
+            headline: headlineSpan.text().trim(),
+            url: `https://avherald.com${link.attr('href')}`,
+            source: 'AVHERALD'
+          });
         }
       });
       return pageIncidents;
     } catch { return []; }
   }
 
-  private async scrapeDetails(url: string, isFullIncident = false) {
-    const axiosConfig = ProxyService.getAxiosConfig();
+  private async scrapeDetails(url: string) {
     try {
-      const response = await axios.get(url, { 
-        ...axiosConfig, 
-        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
-        timeout: this.mission.engine_config.timeout_ms 
-      });
+      const response = await this.safeRequest(url);
       const $ = cheerio.load(response.data);
       
-      // Use refined article-specific selectors
-      const headline = $('span.headline_article').first().text().trim();
-      const narrative = $('span.article_avherald').first().text().trim();
-      const metar = $('span.brief_avherald').first().text().trim();
-      const fullText = `${headline} ${narrative}`;
+      // Clinical Production Selectors
+      const headline = ($('span.headline_article').first().text() || $('span.headline').first().text() || $('title').text()).trim();
+      
+      // Robust Narrative Extraction: Find the main article cell
+      let narrative = '';
+      let metar = '';
 
-      // 1. Precise Date Extraction (look for "on Month DDth YYYY" in headline)
-      let occurred_at = '';
-      const dateMatch = headline.match(/on\s+([A-Z][a-z]{2}\s+\d{1,2}(?:st|nd|rd|th)?\s+\d{4})/i);
-      if (dateMatch) {
-        occurred_at = dateMatch[1];
-      } else {
-        // Fallback: look in metadata lines
-        $('td').each((_, td) => {
+      // AVHerald usually puts narrative in a <td> containing "By Simon Hradecky"
+      $('td').each((_, td) => {
+        const html = $(td).html() || '';
+        if (html.includes('By Simon Hradecky') && html.length > 200) {
+          // Extract narrative (everything after the timestamp/author)
           const text = $(td).text();
-          if (text.startsWith('Date:')) occurred_at = text.replace('Date:', '').trim();
-        });
+          const splitIdx = text.indexOf('Z)');
+          if (splitIdx !== -1) {
+            narrative = text.substring(splitIdx + 2).trim();
+          } else {
+            narrative = text.split('Simon Hradecky')[1]?.trim() || text;
+          }
+          
+          // Extract METAR
+          if (html.includes('Metars:')) {
+            const metarPart = html.split('Metars:')[1]?.split('<')[0] || '';
+            metar = metarPart.trim();
+          }
+          return false; // Found it
+        }
+      });
+
+      // fallback to any span with narrative-like content
+      if (!narrative) {
+        narrative = ($('span.article_text').text() || $('span.article_avherald').text() || '').trim();
       }
 
-      // 2. Hardened Entity Extraction
-      const findEntity = (list: string[]) => {
+      // 1. Hardened Entity Recognition
+      const findEntity = (list: string[], text: string) => {
+        let bestMatch = null;
+        let earliestPos = Infinity;
         for (const item of list) {
-          if (item.length < 3) continue; // Skip too-short patterns
-          const escaped = item.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-          const regex = new RegExp(`\\b${escaped}\\b`, 'i');
-          if (regex.test(fullText)) return item;
+          if (item.length < 3) continue;
+          const idx = text.toUpperCase().indexOf(item.toUpperCase());
+          if (idx !== -1 && idx < earliestPos) {
+            earliestPos = idx;
+            bestMatch = item;
+          }
         }
-        return null;
+        return bestMatch;
       };
 
-      const aircraft = findEntity(patterns.aircraft);
-      const airline = findEntity(patterns.airlines);
+      const aircraft = findEntity(patterns.aircraft, headline) || 'UNKNOWN';
+      const airline = findEntity(patterns.airlines, headline) || 'UNKNOWN';
       
-      // 3. ICAO Airport Detection
-      const icaoMatch = fullText.match(/\b([A-Z]{4})\b/g);
-      const airport_icao = icaoMatch ? icaoMatch[0] : null;
-
-      // 4. Severity Class Detection
-      let severity = 'Incident';
-      if (headline.toLowerCase().includes('accident')) severity = 'Accident';
-      else if (headline.toLowerCase().includes('serious incident')) severity = 'Serious Incident';
-      else if (headline.toLowerCase().includes('crash')) severity = 'Accident';
+      // 2. Flight Path Intelligence (Regex Extraction from Narrative)
+      let departure = 'UNKNOWN';
+      let destination = 'UNKNOWN';
+      const routeMatch = narrative.match(/(?:from|dep|departing)\s+([A-Z][a-z\s,.\-()]{3,40})\s+(?:to|arr|arriving)\s+([A-Z][a-z\s,.\-()]{3,40})/i);
+      
+      if (routeMatch) {
+        departure = routeMatch[1].split(',')[0].split('(')[0].trim().toUpperCase();
+        destination = routeMatch[2].split(',')[0].split('(')[0].trim().toUpperCase();
+      }
 
       return {
-        source_id: url.split('article=')[1]?.split('&')[0] || '',
-        occurred_at: occurred_at || '',
-        headline,
-        url,
-        source: 'AVHERALD',
         meta: {
-          narrative: narrative.substring(0, 2000), // Larger narrative capture
-          metar,
+          narrative: narrative.substring(0, 3000),
+          metar: metar,
           aircraft_type: aircraft,
           operator: airline,
-          airport_icao,
-          severity
+          severity: headline.toLowerCase().includes('accident') ? 'ACCIDENT' : 'INCIDENT',
+          departure,
+          destination
         }
       };
-    } catch { return isFullIncident ? null : {}; }
+    } catch { 
+      return { meta: { departure: 'UNKNOWN', destination: 'UNKNOWN' } };
+    }
   }
 
   private saveResults(data: any[]) {
-    const outPath = path.resolve(this.mission.output_settings.path);
-    if (!fs.existsSync(outPath)) fs.mkdirSync(outPath, { recursive: true });
-    fs.writeFileSync(path.join(outPath, `${this.mission.mission_id}_${Date.now()}.json`), JSON.stringify(data, null, 2));
+    const finalPath = path.join(process.cwd(), 'public', 'data', 'incidents.json');
+    fs.writeFileSync(finalPath, JSON.stringify(data, null, 2));
+    
+    const logPath = path.join(process.cwd(), 'public', 'data', 'automation_log.json');
+    fs.writeFileSync(logPath, JSON.stringify({
+      last_sync: new Date().toISOString(),
+      status: 'ACTIVE'
+    }, null, 2));
   }
 }

@@ -1,158 +1,152 @@
 import React, { useState, useEffect } from 'react';
-import GlobeScene from './components/GlobeScene.tsx';
-import ManifestStack from './components/ManifestStack.tsx';
+import ManifestStack from './components/ManifestStack';
+import GlobeScene from './components/GlobeScene';
+import Clock from './components/Clock';
+import type { ManifestCardData } from './components/ManifestStack';
+import patterns from './constants/aviation_patterns.json';
+
+class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() { return { hasError: true }; }
+  componentDidCatch(error: any, errorInfo: any) { console.error("HUD CRITICAL ERROR:", error, errorInfo); }
+  render() {
+    if (this.state.hasError) return <div style={{ background: '#000', color: '#f00', padding: '20px', fontFamily: 'monospace' }}>TACTICAL SYSTEM FAILURE - RESTARTING...</div>;
+    return this.props.children;
+  }
+}
 
 const App: React.FC = () => {
-  // const [selectedIncident, setSelectedIncident] = useState<any>(null);
-  const [currentTime, setCurrentTime] = useState(new Date());
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [incidents, setIncidents] = useState<ManifestCardData[]>([]);
+  const [lastSync, setLastSync] = useState<string | null>(null);
 
-  // Model state for the stack with accurate 'EVENT_DATE' from headlines
-  const [incidents] = useState<any[]>([
-    {
-      id: 'CR-5389793',
-      operator: 'DELTA AIR LINES',
-      aircraft: 'AIRBUS A321-211',
-      departure: 'MSP',
-      arrival: 'MKE',
-      status: 'CRASH',
-      theme: 'theme-crash',
-      time: '14:22',
-      date: 'APR 26, 2026', // Extracted from headline
-      metar: 'KMSP 261422Z 33012G20KT 10SM BKN045 12/02 Q1012',
-      occurrenceCategory: ['FIRE', 'SMOKE', 'ENGINE'],
-      narrative: 'Sudden loss of altitude at FL320. Crew reported severe smoke and fire on board. Tactical asset loss confirmed.'
-    },
-    {
-      id: 'AC-5362bc2',
-      operator: 'JETBLUE AIRWAYS',
-      aircraft: 'AIRBUS A321-271NX',
-      departure: 'JFK',
-      arrival: 'ORD',
-      status: 'ACCIDENT',
-      theme: 'theme-accident',
-      time: '09:45',
-      date: 'APR 17, 2026', // Extracted from headline
-      metar: 'KJFK 170945Z 18008KT 9SM FEW025 15/09 Q1018',
-      occurrenceCategory: ['ODOUR', 'PAX_SAFETY'],
-      narrative: 'Odour in cabin reported during descent. Crew donned oxygen masks and initiated priority landing at ORD.'
-    },
-    {
-      id: 'NW-536954b',
-      operator: 'PORTER AIRLINES',
-      aircraft: 'EMBRAER E195-E2',
-      departure: 'YEG',
-      arrival: 'YYZ',
-      status: 'INCIDENT',
-      theme: 'theme-news',
-      time: '22:10',
-      date: 'FEB 22, 2026', // Extracted from headline
-      metar: 'CYEG 222210Z AUTO 00000KT 15SM SKC M10/M15 Q1025',
-      occurrenceCategory: ['TYRE', 'LANDING'],
-      narrative: 'Passenger observed tyre separating on departure. Crew elected to return to YEG for precautionary landing.'
-    },
-    {
-      id: 'NEW-999',
-      operator: 'UNITED AIRLINES',
-      aircraft: 'BOEING 737-800',
-      departure: 'DEN',
-      arrival: 'LAX',
-      status: 'MONITORING',
-      theme: 'theme-news',
-      time: '07:30',
-      date: 'MAY 01, 2026',
-      source_id: '999',
-      metar: 'KDEN 010730Z 24015KT 10SM SCT080 18/04 Q1015',
-      occurrenceCategory: ['MONITORING', 'TECHNICAL'],
-      narrative: 'Unidentified technical discrepancy reported in Denver sector. Monitoring telemetry.',
-      isNew: true
+  // Tactical Frontend Hydration (Fallback for Scraper failures)
+  const hydrateFromHeadline = (headline: string) => {
+    const findEntity = (list: string[], text: string) => {
+      let bestMatch = null;
+      let earliestPos = Infinity;
+      for (const item of list) {
+        if (item.length < 3) continue;
+        const idx = text.toUpperCase().indexOf(item.toUpperCase());
+        if (idx !== -1 && idx < earliestPos) {
+          earliestPos = idx;
+          bestMatch = item;
+        }
+      }
+      return bestMatch;
+    };
+
+    const aircraft = findEntity(patterns.aircraft, headline) || 'AIRCRAFT';
+    const airline = findEntity(patterns.airlines, headline) || 'OPERATOR';
+    return { airline, aircraft };
+  };
+
+  const fetchIncidents = async () => {
+    try {
+      let data = [];
+      try {
+        const resp = await fetch('/data/incidents.json?t=' + Date.now());
+        if (resp.ok) data = await resp.json();
+      } catch (e) {}
+      
+      // Merge with Hardened Seed for 100% Reliability
+      const seedResp = await fetch('/data/incidents_seed.json');
+      const seedData = seedResp.ok ? await seedResp.json() : [];
+      
+      // Unique merge (Latest data wins)
+      const mergedMap = new Map();
+      [...seedData, ...data].forEach(item => {
+        const id = String(item.source_id || item.id).toUpperCase();
+        mergedMap.set(id, { ...mergedMap.get(id), ...item });
+      });
+
+      const formatted = Array.from(mergedMap.values()).map((inc: any) => {
+        const sId = String(inc.source_id || inc.id).toUpperCase();
+        const headInfo = hydrateFromHeadline(inc.headline || '');
+        
+        return {
+          ...inc,
+          id: sId,
+          source_id: sId,
+          operator: String(inc.operator || inc.meta?.operator || headInfo.airline).toUpperCase(),
+          aircraft_type: String(inc.aircraft_type || inc.meta?.aircraft_type || headInfo.aircraft).toUpperCase(),
+          date: String(inc.date || inc.occurred_at || 'RECENT').toUpperCase(),
+          metar: String(inc.metar || inc.meta?.metar || '').toUpperCase(),
+          narrative: String(inc.narrative || inc.meta?.narrative || inc.headline || 'NO NARRATIVE DATA AVAILABLE.').toUpperCase(),
+          theme: String(inc.status || '').toUpperCase() === 'CRASH' || String(inc.meta?.severity || '').toLowerCase().includes('accident') ? 'theme-crash' : (inc.status === 'ACCIDENT' ? 'theme-accident' : 'theme-news'),
+          occurrenceCategory: Array.isArray(inc.occurrenceCategory) ? inc.occurrenceCategory.map((s: any) => String(s).toUpperCase()) : [String(inc.meta?.severity || 'MONITORING').toUpperCase()],
+          departure: String(inc.departure || inc.meta?.departure || 'UNKNOWN').toUpperCase(),
+          destination: String(inc.destination || inc.meta?.destination || 'UNKNOWN').toUpperCase()
+        };
+      });
+
+      formatted.sort((a: any, b: any) => {
+        const dateA = new Date(a.date).getTime() || 0;
+        const dateB = new Date(b.date).getTime() || 0;
+        return dateB - dateA;
+      });
+
+      setIncidents(formatted);
+    } catch (e) {
+      console.error('Failed to fetch live incidents:', e);
     }
-  ]);
+  };
 
   useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-
-    // Automation Sync Polling
+    fetchIncidents();
     const syncCheck = setInterval(async () => {
       try {
         const resp = await fetch('/data/automation_log.json');
         if (resp.ok) {
           const log = await resp.json();
-          console.log('🔄 [Sync] Background automation status:', log.status);
+          if (log.last_sync !== lastSync) {
+            setLastSync(log.last_sync);
+            fetchIncidents();
+          }
         }
-      } catch (e) { /* silent fail */ }
-    }, 60000);
-
-    return () => {
-      clearInterval(timer);
-      clearInterval(syncCheck);
-    };
-  }, []);
-
-  const handleSelectIncident = (_incident: any) => {
-    // const _found = incidents.find(i => i.id === incident.source_id);
-    // if (_found) setSelectedIncident(_found);
-  };
+      } catch (e) {}
+    }, 15000);
+    return () => clearInterval(syncCheck);
+  }, [lastSync]);
 
   return (
-    <div className="app-container" style={{ position: 'relative', width: '100vw', height: '100vh', background: '#030304' }}>
+    <ErrorBoundary>
+      <div className="app-container" style={{ position: 'relative', width: '100vw', height: '100vh', background: '#030304', overflow: 'hidden' }}>
+        <div className="globe-container" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 1 }}>
+          <GlobeScene incidents={incidents} onSelectIncident={() => {}} />
+        </div>
 
-      {/* Background Globe */}
-      <div className="globe-container" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 1 }}>
-        <GlobeScene incidents={incidents} onSelectIncident={handleSelectIncident} />
-      </div>
-
-      {/* UI Overlays: Tactical HUD */}
-      <div className="ui-overlay" style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        zIndex: 4,
-        pointerEvents: 'none',
-        padding: 'var(--p-lg)',
-        display: 'grid',
-        gridTemplateColumns: 'calc(20vw - 40px) 1fr 300px',
-        gridTemplateRows: 'auto 1fr auto',
-        gap: 'var(--gap-lg)'
-      }}>
-
-        {/* Top Left: Mission Headers */}
-        <div style={{ gridColumn: '1', display: 'flex', flexDirection: 'column', gap: '8px', pointerEvents: 'all' }}>
-          <div className="thin-title" style={{ fontSize: '0.65rem', opacity: 0.6, letterSpacing: '0.3em' }}>\\ AVIATION COMMAND</div>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            width: '100%',
-            marginTop: '4px',
-            whiteSpace: 'nowrap'
+        <div className="ui-overlay" style={{
+          position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 4, pointerEvents: 'none',
+          display: 'grid', gridTemplateColumns: '520px 1fr 300px', gap: '24px'
+        }}>
+          <div style={{ 
+            position: 'absolute', top: 0, left: 0, width: '520px', height: '100%', padding: '24px',
+            display: 'flex', flexDirection: 'column', gap: '24px', pointerEvents: 'none', zIndex: 100
           }}>
-            <div className="header-text" style={{ fontSize: '1.2rem', color: 'var(--rose-red)', letterSpacing: '0.05em', paddingRight: '15px' }}>
-              {currentTime.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase()}
+            <div style={{ pointerEvents: 'all' }}>
+              <div className="thin-title" style={{ fontSize: '0.65rem', opacity: 0.6, letterSpacing: '0.3em' }}>\\ AVIATION COMMAND</div>
+              <Clock />
             </div>
-            <div style={{ width: '1px', height: '1.5rem', background: 'var(--rose-red)', opacity: 0.5 }}></div>
-            <div className="header-text" style={{ fontSize: '1.25rem', color: 'var(--rose-red)', letterSpacing: '0.05em', fontWeight: 900 }}>
-              {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
+
+            <div style={{ pointerEvents: 'all', flex: 1 }}>
+              {incidents.length === 0 ? (
+                <div style={{ color: 'var(--rose-red)', fontSize: '0.8rem', opacity: 0.5 }}>WAITING FOR INTEL FEED...</div>
+              ) : (
+                <ManifestStack incidents={incidents} selectedId={selectedId} setSelectedId={setSelectedId} />
+              )}
+            </div>
+            
+            <div style={{ position: 'absolute', bottom: '24px', left: '24px', opacity: 0.2, fontSize: '0.6rem', color: 'var(--rose-red)' }}>
+              SYS_HEALTH: OPTIMAL | LINK_ACTIVE: {incidents.length > 0 ? 'TRUE' : 'FALSE'}
             </div>
           </div>
         </div>
-
-        {/* Top Right: Status Info - REMOVED */}
-        <div style={{ gridColumn: '3' }}></div>
-
-        {/* Left Side: Manifest Rolling Grid */}
-        <div style={{ gridRow: '2', gridColumn: '1', pointerEvents: 'all', display: 'flex', alignItems: 'center' }}>
-          <ManifestStack 
-            incidents={incidents} 
-            selectedId={selectedId}
-            setSelectedId={setSelectedId}
-          />
-        </div>
-
       </div>
-    </div>
+    </ErrorBoundary>
   );
 };
 
