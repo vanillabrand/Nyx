@@ -196,18 +196,10 @@
   },
   {
     "source_id": "5388c415",
-    "occurred_at": "Feb 27th 2026",
-    "headline": "Incident: Smartwings B738 near Athens on Feb 27th 2026, temporary loss of right engine thrust",
+    "occurred_at": "",
+    "headline": "Smartwings B738 near Athens on Feb 27th 2026, temporary loss of right engine thrust",
     "url": "https://avherald.com/h?article=5388c415&opt=0",
-    "source": "AVHERALD",
-    "meta": {
-      "narrative": "",
-      "metar": "",
-      "aircraft_type": "B738",
-      "operator": "Smartwings",
-      "airport_icao": null,
-      "severity": "Incident"
-    }
+    "source": "AVHERALD"
   },
   {
     "source_id": "5388c104",
@@ -286,10 +278,18 @@
   },
   {
     "source_id": "538789b8",
-    "occurred_at": "",
-    "headline": "Delta A321 near Milwaukee on Apr 26th 2026, smoke and fire on board",
+    "occurred_at": "Apr 26th 2026",
+    "headline": "Incident: Delta A321 near Milwaukee on Apr 26th 2026, smoke and fire on board",
     "url": "https://avherald.com/h?article=538789b8&opt=0",
-    "source": "AVHERALD"
+    "source": "AVHERALD",
+    "meta": {
+      "narrative": "",
+      "metar": "",
+      "aircraft_type": "A321",
+      "operator": "Delta",
+      "airport_icao": null,
+      "severity": "Incident"
+    }
   },
   {
     "source_id": "53877234",
@@ -368,25 +368,25 @@
   },
   {
     "source_id": "538608d2",
-    "occurred_at": "Mar 5th 2026",
-    "headline": "Incident: UPS B752 at Louisville on Mar 5th 2026, unreliable air data",
+    "occurred_at": "",
+    "headline": "UPS B752 at Louisville on Mar 5th 2026, unreliable air data",
     "url": "https://avherald.com/h?article=538608d2&opt=0",
+    "source": "AVHERALD"
+  },
+  {
+    "source_id": "53858237",
+    "occurred_at": "Apr 24th 2026",
+    "headline": "Incident: United B789 near Singapore on Apr 24th 2026, electrical smell on board",
+    "url": "https://avherald.com/h?article=53858237&opt=0",
     "source": "AVHERALD",
     "meta": {
       "narrative": "",
       "metar": "",
-      "aircraft_type": "B752",
-      "operator": "UPS",
+      "aircraft_type": "B789",
+      "operator": "Singapore",
       "airport_icao": null,
       "severity": "Incident"
     }
-  },
-  {
-    "source_id": "53858237",
-    "occurred_at": "",
-    "headline": "United B789 near Singapore on Apr 24th 2026, electrical smell on board",
-    "url": "https://avherald.com/h?article=53858237&opt=0",
-    "source": "AVHERALD"
   },
   {
     "source_id": "53857fd9",
@@ -510,10 +510,18 @@
   },
   {
     "source_id": "538279bc",
-    "occurred_at": "",
-    "headline": "Sichuan A320 near Harbin on Mar 27th 2024, dual generator failure",
+    "occurred_at": "Mar 27th 2024",
+    "headline": "Report: Sichuan A320 near Harbin on Mar 27th 2024, dual generator failure",
     "url": "https://avherald.com/h?article=538279bc&opt=0",
-    "source": "AVHERALD"
+    "source": "AVHERALD",
+    "meta": {
+      "narrative": "",
+      "metar": "",
+      "aircraft_type": "A320",
+      "operator": "Sichuan",
+      "airport_icao": null,
+      "severity": "Incident"
+    }
   },
   {
     "source_id": "5382785e",
@@ -532,18 +540,10 @@
   },
   {
     "source_id": "53821e0c",
-    "occurred_at": "Apr 18th 2026",
-    "headline": "Incident: Southwest B38M and B738 at Nashville on Apr 18th 2026, TCAS saves the day",
+    "occurred_at": "",
+    "headline": "Southwest B38M and B738 at Nashville on Apr 18th 2026, TCAS saves the day",
     "url": "https://avherald.com/h?article=53821e0c&opt=0",
-    "source": "AVHERALD",
-    "meta": {
-      "narrative": "",
-      "metar": "",
-      "aircraft_type": "B738",
-      "operator": "Southwest",
-      "airport_icao": "TCAS",
-      "severity": "Incident"
-    }
+    "source": "AVHERALD"
   },
   {
     "source_id": "53814f9d",

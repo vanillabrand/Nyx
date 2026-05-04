@@ -46,6 +46,20 @@ const AirlineLogo: React.FC<AirlineLogoProps> = ({ operator = '', size = 32 }) =
         <path fill="currentColor" d="M16 2L2 28h28L16 2z m0 8l8 16H8l8-16z" />
       );
     }
+    if (name.includes('AZUL')) {
+      return (
+        <path fill="currentColor" d="M4 10h24v4H4z m0 8h24v4H4z" opacity="0.9" />
+      );
+    }
+    if (name.includes('GOL')) {
+      return (
+        <g fill="currentColor">
+          <circle cx="10" cy="16" r="6" />
+          <circle cx="22" cy="16" r="6" />
+          <path d="M14 16h4v2h-4z" />
+        </g>
+      );
+    }
     
     return (
       <path fill="currentColor" d="M4 28h24c-2-8-6-20-8-24H10c2 4 6 16 8 24H4z" opacity="0.8" />

@@ -166,15 +166,15 @@
   },
   {
     "source_id": "5388de5e",
-    "occurred_at": "Feb 22nd 2026",
-    "headline": "Incident: Porter E295 at Edmonton and Toronto on Feb 22nd 2026, passenger observed tyre separating on departure",
+    "occurred_at": "",
+    "headline": "",
     "url": "https://avherald.com/h?article=5388de5e&opt=0",
     "source": "AVHERALD",
     "meta": {
       "narrative": "",
       "metar": "",
-      "aircraft_type": "E295",
-      "operator": "Porter",
+      "aircraft_type": null,
+      "operator": null,
       "airport_icao": null,
       "severity": "Incident"
     }
@@ -226,18 +226,10 @@
   },
   {
     "source_id": "534c2929",
-    "occurred_at": "Jan 17th 2026",
-    "headline": "Incident: TAP A20N at Prague on Jan 17th 2026, descended below minimum safe altitude on approach",
+    "occurred_at": "",
+    "headline": "TAP A20N at Prague on Jan 17th 2026, descended below minimum safe altitude on approach",
     "url": "https://avherald.com/h?article=534c2929&opt=0",
-    "source": "AVHERALD",
-    "meta": {
-      "narrative": "",
-      "metar": "",
-      "aircraft_type": "A20n",
-      "operator": "Safe",
-      "airport_icao": null,
-      "severity": "Incident"
-    }
+    "source": "AVHERALD"
   },
   {
     "source_id": "51ffac59",
@@ -271,25 +263,25 @@
   },
   {
     "source_id": "53882e78",
-    "occurred_at": "Apr 27th 2026",
-    "headline": "Incident: Norwegian B738 at Malaga and Copenhagen on Apr 27th 2026, engine oil leak",
+    "occurred_at": "",
+    "headline": "Norwegian B738 at Malaga and Copenhagen on Apr 27th 2026, engine oil leak",
     "url": "https://avherald.com/h?article=53882e78&opt=0",
+    "source": "AVHERALD"
+  },
+  {
+    "source_id": "538789b8",
+    "occurred_at": "Apr 26th 2026",
+    "headline": "Incident: Delta A321 near Milwaukee on Apr 26th 2026, smoke and fire on board",
+    "url": "https://avherald.com/h?article=538789b8&opt=0",
     "source": "AVHERALD",
     "meta": {
       "narrative": "",
       "metar": "",
-      "aircraft_type": "B738",
-      "operator": "Norwegian",
+      "aircraft_type": "A321",
+      "operator": "Delta",
       "airport_icao": null,
       "severity": "Incident"
     }
-  },
-  {
-    "source_id": "538789b8",
-    "occurred_at": "",
-    "headline": "Delta A321 near Milwaukee on Apr 26th 2026, smoke and fire on board",
-    "url": "https://avherald.com/h?article=538789b8&opt=0",
-    "source": "AVHERALD"
   },
   {
     "source_id": "53877234",
@@ -338,33 +330,17 @@
   },
   {
     "source_id": "53875b02",
-    "occurred_at": "Apr 26th 2026",
-    "headline": "Incident: BAW B772 near London on Apr 26th 2026, electrical burning odour",
+    "occurred_at": "",
+    "headline": "BAW B772 near London on Apr 26th 2026, electrical burning odour",
     "url": "https://avherald.com/h?article=53875b02&opt=0",
-    "source": "AVHERALD",
-    "meta": {
-      "narrative": "",
-      "metar": "",
-      "aircraft_type": "B772",
-      "operator": "BAW",
-      "airport_icao": null,
-      "severity": "Incident"
-    }
+    "source": "AVHERALD"
   },
   {
     "source_id": "5386b221",
-    "occurred_at": "Apr 25th 2026",
-    "headline": "Incident: ANZ DH8C near Auckland on Apr 25th 2026, hydraulic problems",
+    "occurred_at": "",
+    "headline": "ANZ DH8C near Auckland on Apr 25th 2026, hydraulic problems",
     "url": "https://avherald.com/h?article=5386b221&opt=0",
-    "source": "AVHERALD",
-    "meta": {
-      "narrative": "",
-      "metar": "",
-      "aircraft_type": "DH8C",
-      "operator": "ANZ",
-      "airport_icao": null,
-      "severity": "Incident"
-    }
+    "source": "AVHERALD"
   },
   {
     "source_id": "538608d2",
@@ -383,10 +359,18 @@
   },
   {
     "source_id": "53858237",
-    "occurred_at": "",
-    "headline": "United B789 near Singapore on Apr 24th 2026, electrical smell on board",
+    "occurred_at": "Apr 24th 2026",
+    "headline": "Incident: United B789 near Singapore on Apr 24th 2026, electrical smell on board",
     "url": "https://avherald.com/h?article=53858237&opt=0",
-    "source": "AVHERALD"
+    "source": "AVHERALD",
+    "meta": {
+      "narrative": "",
+      "metar": "",
+      "aircraft_type": "B789",
+      "operator": "Singapore",
+      "airport_icao": null,
+      "severity": "Incident"
+    }
   },
   {
     "source_id": "53857fd9",
@@ -510,10 +494,18 @@
   },
   {
     "source_id": "538279bc",
-    "occurred_at": "",
-    "headline": "Sichuan A320 near Harbin on Mar 27th 2024, dual generator failure",
+    "occurred_at": "Mar 27th 2024",
+    "headline": "Report: Sichuan A320 near Harbin on Mar 27th 2024, dual generator failure",
     "url": "https://avherald.com/h?article=538279bc&opt=0",
-    "source": "AVHERALD"
+    "source": "AVHERALD",
+    "meta": {
+      "narrative": "",
+      "metar": "",
+      "aircraft_type": "A320",
+      "operator": "Sichuan",
+      "airport_icao": null,
+      "severity": "Incident"
+    }
   },
   {
     "source_id": "5382785e",
@@ -547,18 +539,10 @@
   },
   {
     "source_id": "53814f9d",
-    "occurred_at": "Apr 8th 2026",
-    "headline": "Accident: Southwest B737 at Las Vegas on Apr 8th 2026, HUD takes captain down",
+    "occurred_at": "",
+    "headline": "Southwest B737 at Las Vegas on Apr 8th 2026, HUD takes captain down",
     "url": "https://avherald.com/h?article=53814f9d&opt=0",
-    "source": "AVHERALD",
-    "meta": {
-      "narrative": "",
-      "metar": "",
-      "aircraft_type": "B737",
-      "operator": "LAS",
-      "airport_icao": null,
-      "severity": "Accident"
-    }
+    "source": "AVHERALD"
   },
   {
     "source_id": "53814d33",

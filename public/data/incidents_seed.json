@@ -1,47 +1,34 @@
 [
   {
-    "source_id": "538abb65",
-    "occurred_at": "MAY 02 2026",
+    "source_id": "538ABB65",
+    "occurred_at": "MAY 2ND 2026",
     "headline": "INCIDENT: DELTA A339 OVER ATLANTIC ON MAY 2ND 2026, ENGINE PROBLEM",
-    "url": "https://avherald.com/h?article=538abb65&opt=0",
-    "departure": "LHR",
-    "destination": "BOS",
+    "url": "HTTPS://AVHERALD.COM/H?ARTICLE=538ABB65&OPT=0",
+    "source": "AVHERALD",
     "meta": {
-      "operator": "DELTA",
+      "narrative": "A DELTA AIRLINES AIRBUS A330-900, REGISTRATION N429DX PERFORMING FLIGHT DL-59 FROM LONDON HEATHROW,EN (UK) TO BOSTON,MA (USA), WAS ENROUTE OVER THE ATLANTIC OCEAN ABOUT 380NM EAST OF ST. JOHN'S, NL (CANADA) WHEN THE CREW DECIDED TO TURN AROUND AND RETURN TO LONDON DUE TO AN ENGINE PROBLEM.",
+      "metar": "EGLL 021650Z 24008KT 9999 FEW045 14/06 Q1012 NOSIG=",
       "aircraft_type": "A339",
+      "operator": "DELTA",
       "severity": "INCIDENT",
-      "narrative": "A DELTA AIRLINES AIRBUS A330-900, REGISTRATION N429DX PERFORMING FLIGHT DL-59 FROM LONDON HEATHROW (UK) TO BOSTON (USA) WAS ENROUTE OVER THE ATLANTIC WHEN THE CREW DECIDED TO DIVERT DUE TO AN ENGINE PROBLEM.",
-      "metar": "EGLL 021220Z 24010KT 9999 FEW035 14/08 Q1015 NOSIG"
+      "departure": "LHR",
+      "destination": "BOS"
     }
   },
   {
-    "source_id": "538a2c0a",
-    "occurred_at": "MAY 01 2026",
+    "source_id": "538A2C0A",
+    "occurred_at": "APR 30TH 2026",
     "headline": "INCIDENT: UNITED B752 NEAR NEWARK ON APR 30TH 2026, PITOT HEATER NOT WORKING",
-    "url": "https://avherald.com/h?article=538a2c0a&opt=0",
-    "departure": "EWR",
-    "destination": "ORD",
+    "url": "HTTPS://AVHERALD.COM/H?ARTICLE=538A2C0A&OPT=0",
+    "source": "AVHERALD",
     "meta": {
-      "operator": "UNITED",
+      "narrative": "A UNITED AIRLINES BOEING 757-200, REGISTRATION N14102 PERFORMING FLIGHT UA-188 FROM NEWARK,NJ (USA) TO LISBON (PORTUGAL), WAS CLIMBING OUT OF NEWARK WHEN THE CREW STOPPED THE CLIMB AT 5000 FEET REPORTING A PITOT HEATER WAS NOT WORKING.",
+      "metar": "KEWR 302351Z 16007KT 10SM CLR 16/04 Q3004 NOSIG",
       "aircraft_type": "B752",
-      "severity": "INCIDENT",
-      "narrative": "A UNITED AIRLINES BOEING 757-200, REGISTRATION N14102 PERFORMING FLIGHT UA-1234 WAS CLIMBING OUT OF NEWARK WHEN THE CREW REPORTED A PITOT HEATER FAILURE.",
-      "metar": "KEWR 011051Z 23008KT 10SM CLR 12/04 Q1018"
-    }
-  },
-  {
-    "source_id": "538a1bdb",
-    "occurred_at": "APR 30 2026",
-    "headline": "INCIDENT: UNITED B739 NEAR CHICAGO ON APR 30TH 2026, ODOUR IN CABIN",
-    "url": "https://avherald.com/h?article=538a1bdb&opt=0",
-    "departure": "ORD",
-    "destination": "LAX",
-    "meta": {
       "operator": "UNITED",
-      "aircraft_type": "B739",
       "severity": "INCIDENT",
-      "narrative": "A UNITED AIRLINES BOEING 737-900, REGISTRATION N66848 PERFORMING FLIGHT UA-567 WAS ENROUTE NEAR CHICAGO WHEN AN ODOUR WAS DETECTED IN THE CABIN.",
-      "metar": "KORD 302051Z 19012KT 10SM BKN250 18/06 Q1012"
+      "departure": "EWR",
+      "destination": "LIS"
     }
   }
 ]

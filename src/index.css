@@ -159,11 +159,10 @@ h3,
 /* Grid HUD Transformation: 1x3 Vertical Column */
 .grid-mask-container {
   position: relative;
-  width: 485px; /* Matches the larger grid-scroll-container width */
-  height: 800px; /* Precision fit for 3 rows (6 cards) at 0.75 scale */
+  width: 485px; 
+  height: 850px; /* Increased to ensure 3 rows fit comfortably */
   overflow: hidden;
-  mask-image: linear-gradient(to bottom, black 0%, black 85%, transparent);
-  -webkit-mask-image: linear-gradient(to bottom, black 0%, black 85%, transparent);
+  /* Removed mask-image to ensure full card visibility */
   pointer-events: all;
   margin: 0;
   padding: 0;
@@ -186,9 +185,9 @@ h3,
 
 .grid-scroll-container {
   display: grid;
-  grid-template-columns: repeat(2, 240px);
+  grid-template-columns: repeat(2, 192px);
   gap: 5px;
-  width: 485px;
+  width: 389px;
   margin: 0;
   padding: 0;
   padding-bottom: 400px;
@@ -199,7 +198,7 @@ h3,
   height: 350px;
   min-width: 150px;
   min-height: 200px;
-  background: #0a0101 !important;
+  background: rgba(10, 1, 1, 0.2) !important;
   /* Near-Black Base */
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 6px;
@@ -232,10 +231,9 @@ h3,
   backdrop-filter: blur(4px);
   z-index: 1000;
   display: flex;
-  align-items: flex-start;
+  align-items: center; /* Vertically centered */
   padding: 40px;
-  padding-top: 100px;
-  /* Align with AVIATION COMMAND area */
+  /* Align with AVIATION COMMAND area on the left */
 }
 
 .focused-card {
@@ -470,4 +468,35 @@ h3,
   animation: scanline 4s linear infinite;
   pointer-events: none;
   z-index: 20;
+}
+
+/* Emergency Alert Banner Animations */
+@keyframes emergencyGlow {
+  0%, 100% {
+    box-shadow:
+      0 0 10px rgba(255, 32, 32, 0.3),
+      0 0 25px rgba(255, 32, 32, 0.15),
+      inset 0 0 15px rgba(255, 32, 32, 0.04);
+  }
+  50% {
+    box-shadow:
+      0 0 22px rgba(255, 32, 32, 0.7),
+      0 0 55px rgba(255, 32, 32, 0.35),
+      inset 0 0 25px rgba(255, 32, 32, 0.1);
+  }
+}
+
+@keyframes emergencyStripe {
+  0%   { opacity: 0.3; transform: scaleX(0.4); }
+  50%  { opacity: 1;   transform: scaleX(1); }
+  100% { opacity: 0.3; transform: scaleX(0.4); }
+}
+
+@keyframes emergencyBlink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+.emergency-banner-pulse {
+  animation: emergencyGlow 1.4s ease-in-out infinite;
 }

@@ -10,8 +10,7 @@ async function megaScrape(startOffset: string, targetPages: number) {
 
   for (let i = 0; i < targetPages; i++) {
     const url = `https://avherald.com/h?list=&opt=0&offset=${currentOffset}`;
-    const proxy = ProxyService.getNextProxy();
-    const config = proxy ? ProxyService.getAxiosConfig(proxy) : {};
+    const config = ProxyService.getAxiosConfig(url);
 
     try {
       // High timeout for slow residential proxy

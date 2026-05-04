@@ -1,12 +1,19 @@
 import React, { useRef, useState } from 'react';
 import AirlineLogo from './AirlineLogo';
 import EventIcon from './EventIcon';
+import { CategoryIcon } from './CategoryIcon';
+
+export interface FlightPath {
+  operator: string;
+  route: string[]; // Ordered list of airport codes/names
+}
 
 export interface ManifestCardData {
   id: string;
   source_id: string;
-  operator: string;
-  aircraft_type: string;
+  operator: string[];
+  operator_codes?: string[];
+  aircraft_type: string[];
   date: string;
   status: string;
   theme: string;
@@ -14,8 +21,10 @@ export interface ManifestCardData {
   narrative: string;
   departure: string;
   destination: string;
+  flight_paths?: FlightPath[];
   metar?: string;
   location?: string;
+  lastUpdated?: string;
 }
 
 interface ManifestStackProps {
@@ -34,15 +43,30 @@ const ManifestStack: React.FC<ManifestStackProps> = ({ incidents, selectedId, se
 
   const handleWheel = (e: React.WheelEvent) => {
     if (selectedId) return;
-    setScrollPos(prev => Math.min(0, prev - e.deltaY));
+    
+    const container = containerRef.current;
+    const content = scrollRef.current;
+    if (container && content) {
+      const maxScroll = Math.min(0, container.clientHeight - content.scrollHeight - 100);
+      setScrollPos(prev => {
+        const next = prev - e.deltaY;
+        return Math.max(maxScroll, Math.min(0, next));
+      });
+    }
   };
 
   const renderCardContent = (card: ManifestCardData, isFocused: boolean) => (
     <div 
-      onClick={() => !isFocused && setSelectedId(card.id)}
+      onClick={(e) => {
+        if (isFocused) {
+          e.stopPropagation();
+        } else {
+          setSelectedId(card.id);
+        }
+      }}
       style={{ 
-        width: isFocused ? '380px' : '240px', 
-        height: isFocused ? 'auto' : '262px',
+        width: isFocused ? '380px' : '192px', 
+        height: isFocused ? 'auto' : '210px',
         position: 'relative',
         cursor: isFocused ? 'default' : 'pointer'
       }}
@@ -52,9 +76,9 @@ const ManifestStack: React.FC<ManifestStackProps> = ({ incidents, selectedId, se
         style={{ 
           width: isFocused ? '380px' : '320px',
           height: isFocused ? 'auto' : '350px',
-          transform: isFocused ? 'none' : 'scale(0.75)',
+          transform: isFocused ? 'none' : 'scale(0.60)',
           transformOrigin: 'top left',
-          position: 'absolute',
+          position: isFocused ? 'relative' : 'absolute',
           top: 0,
           left: 0,
           zIndex: isFocused ? 1002 : 1,
@@ -76,43 +100,127 @@ const ManifestStack: React.FC<ManifestStackProps> = ({ incidents, selectedId, se
           
           {/* Row 1: Mission Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '12px', marginBottom: '24px' }}>
-            <div>
-              <div style={{ fontSize: '0.55rem', opacity: 0.4 }}>TACTICAL MISSION ID</div>
-              <div style={{ fontSize: '0.8rem', fontWeight: 900, letterSpacing: '0.1em' }}>{card.source_id}</div>
+            <div style={{ display: 'flex', gap: '20px' }}>
+              {(card.occurrenceCategory || []).map((cat, idx) => (
+                <div key={idx} style={{ 
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}>
+                  <div style={{ opacity: 0.9 }}>
+                    <CategoryIcon category={cat} size={24} color="var(--rose-red)" />
+                  </div>
+                  <div style={{ 
+                    fontSize: '0.5rem', 
+                    fontWeight: 900, 
+                    letterSpacing: '0.1em', 
+                    color: 'white',
+                    opacity: 0.5,
+                    textAlign: 'center'
+                  }}>
+                    {cat}
+                  </div>
+                </div>
+              ))}
             </div>
             <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '0.55rem', opacity: 0.4 }}>INTEL STATUS</div>
-              <div style={{ fontSize: '0.7rem', fontWeight: 900, color: 'var(--rose-red)' }}>{card.status}</div>
+              <div style={{ fontSize: '0.55rem', opacity: 0.4, textTransform: 'uppercase' }}>{card.lastUpdated || 'UPDATED'}</div>
+              <div style={{ fontSize: '0.7rem', fontWeight: 900, color: 'var(--rose-red)' }}>{card.date}</div>
             </div>
           </div>
 
           {/* Row 2: Central Identity (Centered Logo/Name) */}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginBottom: '24px' }}>
-            <div style={{ marginBottom: '16px', filter: 'drop-shadow(0 0 10px rgba(255,255,255,0.1))' }}>
-              <AirlineLogo operator={card.operator} size={64} />
+            <div style={{ display: 'flex', gap: '16px', marginBottom: '16px', filter: 'drop-shadow(0 0 10px rgba(207,20,43,0.25))', flexWrap: 'wrap', justifyContent: 'center', color: 'var(--rose-red)' }}>
+              {card.operator.map((op, idx) => (
+                <AirlineLogo key={idx} operator={op} size={card.operator.length > 1 ? 48 : 64} />
+              ))}
             </div>
-            <div className="header-text" style={{ fontSize: '2.2rem', fontWeight: 900, lineHeight: 0.9, letterSpacing: '-0.03em', textAlign: 'center' }}>
-              {card.operator}
+            <div className="header-text" style={{ 
+              fontSize: '2.4rem', 
+              fontWeight: 900, 
+              lineHeight: 1, 
+              letterSpacing: '0.05em', 
+              textAlign: 'center',
+              width: '100%',
+              color: 'var(--rose-red)'
+            }}>
+              {card.operator_codes && card.operator_codes.length > 0 
+                ? card.operator_codes.join(' / ') 
+                : (card.operator.length > 0 && card.operator[0] !== 'UNKNOWN' 
+                  ? card.operator.join(' / ') 
+                  : 'UNK')}
             </div>
-            <div style={{ fontSize: '0.85rem', opacity: 0.5, marginTop: '8px', letterSpacing: '0.2em' }}>
-              {card.aircraft_type}
+            
+            <div style={{ 
+              fontSize: '0.75rem', 
+              color: 'var(--rose-red)', 
+              opacity: 0.75, 
+              marginTop: '4px', 
+              letterSpacing: '0.1em', 
+              textAlign: 'center',
+              fontWeight: 700,
+              maxWidth: '100%',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap'
+            }}>
+              {card.operator.join(' / ')}
+            </div>
+
+            <div style={{ 
+              fontSize: '0.75rem', 
+              color: 'var(--rose-red)',
+              opacity: 0.55, 
+              marginTop: '12px', 
+              letterSpacing: '0.2em', 
+              textAlign: 'center',
+              fontWeight: 600
+            }}>
+              {card.aircraft_type.join(' + ')}
             </div>
           </div>
 
           {/* Row 3: Mission Flight Path */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '16px' }}>
-            <div>
-              <div style={{ fontSize: '0.55rem', opacity: 0.4, marginBottom: '4px' }}>DEPARTURE / DESTINATION</div>
-              <div style={{ 
-                fontSize: '1.2rem', 
-                fontWeight: 900, 
-                color: 'var(--rose-red)',
-                letterSpacing: '0.05em'
-              }}>
-                {card.departure} / {card.destination}
-              </div>
+          <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1 }}>
+              {card.flight_paths && card.flight_paths.length > 0 ? (
+                card.flight_paths.map((path, pIdx) => (
+                  <div key={pIdx}>
+                    <div style={{ fontSize: '0.45rem', opacity: 0.4, marginBottom: '2px', display: 'flex', gap: '8px' }}>
+                      <span style={{ letterSpacing: '0.1em' }}>MISSION PATH {card.flight_paths!.length > 1 ? `#${pIdx + 1}` : ''}</span>
+                      {card.flight_paths!.length > 1 && path.operator && (
+                        <span style={{ color: 'rgba(255,255,255,0.6)' }}>[{path.operator}]</span>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                      {path.route.map((node, nIdx) => (
+                        <React.Fragment key={nIdx}>
+                          <span style={{ 
+                            fontSize: '1.1rem', 
+                            fontWeight: 900, 
+                            color: 'var(--rose-red)',
+                            letterSpacing: '0.05em'
+                          }}>
+                            {node}
+                          </span>
+                          {nIdx < path.route.length - 1 && (
+                            <span style={{ opacity: 0.2, fontSize: '0.7rem' }}>▶</span>
+                          )}
+                        </React.Fragment>
+                      ))}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div>
+                  <div style={{ fontSize: '0.45rem', opacity: 0.4, marginBottom: '2px', letterSpacing: '0.1em' }}>FLIGHT PATH DATA</div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--rose-red)', opacity: 0.3 }}>UNKNOWN</div>
+                </div>
+              )}
             </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-end' }}>
+            <div style={{ marginLeft: '16px' }}>
               <EventIcon status={card.status} size={32} />
             </div>
           </div>
@@ -122,7 +230,18 @@ const ManifestStack: React.FC<ManifestStackProps> = ({ incidents, selectedId, se
             <div style={{ marginTop: '32px', borderTop: '2px solid var(--rose-red)', paddingTop: '20px', textAlign: 'left' }}>
               <div style={{ marginBottom: '24px' }}>
                 <div style={{ fontSize: '0.6rem', opacity: 0.4, marginBottom: '8px' }}>INCIDENT NARRATIVE_HYDRATED</div>
-                <div style={{ fontSize: '0.95rem', lineHeight: 1.6, opacity: 0.9, background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '4px' }}>
+                <div style={{ 
+                  fontSize: '0.95rem', 
+                  lineHeight: 1.6, 
+                  maxHeight: 'calc(1.6em * 3 + 32px)', // 3 lines of text + 16px padding top/bottom
+                  overflowY: 'auto',
+                  opacity: 0.9, 
+                  background: 'rgba(255,255,255,0.03)', 
+                  padding: '16px', 
+                  borderRadius: '4px',
+                  scrollbarWidth: 'thin',
+                  scrollbarColor: 'var(--rose-red) transparent'
+                }}>
                   {card.narrative}
                 </div>
               </div>

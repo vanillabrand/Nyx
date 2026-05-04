@@ -76,63 +76,31 @@
   },
   {
     "source_id": "5362bc2a",
-    "occurred_at": "Mar 5th 2026",
-    "headline": "Incident: American A321 near Baltimore on Mar 5th 2026, electrical problems, RAT deployed",
+    "occurred_at": "",
+    "headline": "American A321 near Baltimore on Mar 5th 2026, electrical problems, RAT deployed",
     "url": "https://avherald.com/h?article=5362bc2a&opt=0",
-    "source": "AVHERALD",
-    "meta": {
-      "narrative": "",
-      "metar": "",
-      "aircraft_type": "A321",
-      "operator": "American",
-      "airport_icao": null,
-      "severity": "Incident"
-    }
+    "source": "AVHERALD"
   },
   {
     "source_id": "536954bc",
-    "occurred_at": "Mar 19th 2026",
-    "headline": "Incident: Delta A319 enroute on Mar 19th 2026, generator problems, RAT deployed",
+    "occurred_at": "",
+    "headline": "Delta A319 enroute on Mar 19th 2026, generator problems, RAT deployed",
     "url": "https://avherald.com/h?article=536954bc&opt=0",
-    "source": "AVHERALD",
-    "meta": {
-      "narrative": "",
-      "metar": "",
-      "aircraft_type": "A319",
-      "operator": "Delta",
-      "airport_icao": null,
-      "severity": "Incident"
-    }
+    "source": "AVHERALD"
   },
   {
     "source_id": "5383ba37",
-    "occurred_at": "Apr 19th 2026",
-    "headline": "Accident: PAL A320 near Iloilo on Apr 19th 2026, air conditioning problems",
+    "occurred_at": "",
+    "headline": "PAL A320 near Iloilo on Apr 19th 2026, air conditioning problems",
     "url": "https://avherald.com/h?article=5383ba37&opt=0",
-    "source": "AVHERALD",
-    "meta": {
-      "narrative": "",
-      "metar": "",
-      "aircraft_type": "A320",
-      "operator": "PAL",
-      "airport_icao": null,
-      "severity": "Accident"
-    }
+    "source": "AVHERALD"
   },
   {
     "source_id": "538975b2",
-    "occurred_at": "Apr 27th 2026",
-    "headline": "Incident: Jet2 B738 at Leeds on Apr 27th 2026, bird strike",
+    "occurred_at": "",
+    "headline": "Jet2 B738 at Leeds on Apr 27th 2026, bird strike",
     "url": "https://avherald.com/h?article=538975b2&opt=0",
-    "source": "AVHERALD",
-    "meta": {
-      "narrative": "",
-      "metar": "",
-      "aircraft_type": "B738",
-      "operator": "jet2",
-      "airport_icao": null,
-      "severity": "Incident"
-    }
+    "source": "AVHERALD"
   },
   {
     "source_id": "5239938e",
@@ -151,33 +119,17 @@
   },
   {
     "source_id": "53895e5b",
-    "occurred_at": "Apr 29th 2026",
-    "headline": "Incident: United B739 near Grand Junction on Apr 29th 2026, burning odour on board",
+    "occurred_at": "",
+    "headline": "United B739 near Grand Junction on Apr 29th 2026, burning odour on board",
     "url": "https://avherald.com/h?article=53895e5b&opt=0",
-    "source": "AVHERALD",
-    "meta": {
-      "narrative": "",
-      "metar": "",
-      "aircraft_type": "B739",
-      "operator": "United",
-      "airport_icao": null,
-      "severity": "Incident"
-    }
+    "source": "AVHERALD"
   },
   {
     "source_id": "5388de5e",
-    "occurred_at": "Feb 22nd 2026",
-    "headline": "Incident: Porter E295 at Edmonton and Toronto on Feb 22nd 2026, passenger observed tyre separating on departure",
+    "occurred_at": "",
+    "headline": "Porter E295 at Edmonton and Toronto on Feb 22nd 2026, passenger observed tyre separating on departure",
     "url": "https://avherald.com/h?article=5388de5e&opt=0",
-    "source": "AVHERALD",
-    "meta": {
-      "narrative": "",
-      "metar": "",
-      "aircraft_type": "E295",
-      "operator": "Porter",
-      "airport_icao": null,
-      "severity": "Incident"
-    }
+    "source": "AVHERALD"
   },
   {
     "source_id": "5388dcc2",
@@ -286,10 +238,18 @@
   },
   {
     "source_id": "538789b8",
-    "occurred_at": "",
-    "headline": "Delta A321 near Milwaukee on Apr 26th 2026, smoke and fire on board",
+    "occurred_at": "Apr 26th 2026",
+    "headline": "Incident: Delta A321 near Milwaukee on Apr 26th 2026, smoke and fire on board",
     "url": "https://avherald.com/h?article=538789b8&opt=0",
-    "source": "AVHERALD"
+    "source": "AVHERALD",
+    "meta": {
+      "narrative": "",
+      "metar": "",
+      "aircraft_type": "A321",
+      "operator": "Delta",
+      "airport_icao": null,
+      "severity": "Incident"
+    }
   },
   {
     "source_id": "53877234",
@@ -353,18 +313,10 @@
   },
   {
     "source_id": "5386b221",
-    "occurred_at": "Apr 25th 2026",
-    "headline": "Incident: ANZ DH8C near Auckland on Apr 25th 2026, hydraulic problems",
+    "occurred_at": "",
+    "headline": "ANZ DH8C near Auckland on Apr 25th 2026, hydraulic problems",
     "url": "https://avherald.com/h?article=5386b221&opt=0",
-    "source": "AVHERALD",
-    "meta": {
-      "narrative": "",
-      "metar": "",
-      "aircraft_type": "DH8C",
-      "operator": "ANZ",
-      "airport_icao": null,
-      "severity": "Incident"
-    }
+    "source": "AVHERALD"
   },
   {
     "source_id": "538608d2",
@@ -383,10 +335,18 @@
   },
   {
     "source_id": "53858237",
-    "occurred_at": "",
-    "headline": "United B789 near Singapore on Apr 24th 2026, electrical smell on board",
+    "occurred_at": "Apr 24th 2026",
+    "headline": "Incident: United B789 near Singapore on Apr 24th 2026, electrical smell on board",
     "url": "https://avherald.com/h?article=53858237&opt=0",
-    "source": "AVHERALD"
+    "source": "AVHERALD",
+    "meta": {
+      "narrative": "",
+      "metar": "",
+      "aircraft_type": "B789",
+      "operator": "Singapore",
+      "airport_icao": null,
+      "severity": "Incident"
+    }
   },
   {
     "source_id": "53857fd9",
@@ -450,18 +410,10 @@
   },
   {
     "source_id": "5383c0ba",
-    "occurred_at": "Mar 16th 2026",
-    "headline": "Incident: Westjet B38M at Vancouver on Mar 16th 2026, first officer incapacitated",
+    "occurred_at": "",
+    "headline": "Westjet B38M at Vancouver on Mar 16th 2026, first officer incapacitated",
     "url": "https://avherald.com/h?article=5383c0ba&opt=0",
-    "source": "AVHERALD",
-    "meta": {
-      "narrative": "",
-      "metar": "",
-      "aircraft_type": "B38M",
-      "operator": "First",
-      "airport_icao": null,
-      "severity": "Incident"
-    }
+    "source": "AVHERALD"
   },
   {
     "source_id": "5383bfd6",
@@ -510,10 +462,18 @@
   },
   {
     "source_id": "538279bc",
-    "occurred_at": "",
-    "headline": "Sichuan A320 near Harbin on Mar 27th 2024, dual generator failure",
+    "occurred_at": "Mar 27th 2024",
+    "headline": "Report: Sichuan A320 near Harbin on Mar 27th 2024, dual generator failure",
     "url": "https://avherald.com/h?article=538279bc&opt=0",
-    "source": "AVHERALD"
+    "source": "AVHERALD",
+    "meta": {
+      "narrative": "",
+      "metar": "",
+      "aircraft_type": "A320",
+      "operator": "Sichuan",
+      "airport_icao": null,
+      "severity": "Incident"
+    }
   },
   {
     "source_id": "5382785e",
@@ -592,18 +552,10 @@
   },
   {
     "source_id": "53814571",
-    "occurred_at": "Apr 19th 2026",
-    "headline": "Incident: TAP A21N near Paris on Apr 19th 2026, smoke on board",
+    "occurred_at": "",
+    "headline": "TAP A21N near Paris on Apr 19th 2026, smoke on board",
     "url": "https://avherald.com/h?article=53814571&opt=0",
-    "source": "AVHERALD",
-    "meta": {
-      "narrative": "",
-      "metar": "",
-      "aircraft_type": "A21n",
-      "operator": "TAP",
-      "airport_icao": null,
-      "severity": "Incident"
-    }
+    "source": "AVHERALD"
   },
   {
     "source_id": "5380cd1f",

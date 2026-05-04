@@ -12,12 +12,17 @@ export class ProxyService {
    * Returns a high-resilience proxy agent.
    * Prioritizes SOCKS5 for tactical TLS stability.
    */
-  public static getAgent() {
-    // Prefer SOCKS5 for TLS bypass stability
+  public static getAgent(url?: string) {
+    // TACTICAL BYPASS: AVHerald explicitly blocks proxy ranges.
+    // If target is AVHerald, we use a direct connection.
+    if (url?.includes('avherald.com')) {
+      return null;
+    }
+
     if (this.SOCKS5_URL) {
       return new SocksProxyAgent(this.SOCKS5_URL, {
         keepAlive: true,
-        timeout: 30000 // 30s timeout for mission-critical requests
+        timeout: 30000
       });
     }
     
@@ -35,8 +40,8 @@ export class ProxyService {
   /**
    * Returns axios configuration with the appropriate agent.
    */
-  public static getAxiosConfig() {
-    const agent = this.getAgent();
+  public static getAxiosConfig(url?: string) {
+    const agent = this.getAgent(url);
     if (!agent) return { timeout: 30000 };
 
     return {

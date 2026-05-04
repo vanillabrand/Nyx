@@ -10,8 +10,7 @@ async function massAnalyze(pages: number) {
 
   for (let i = 0; i < pages; i++) {
     const url = `https://avherald.com/h?list=&opt=0&offset=${currentOffset}`;
-    const proxy = ProxyService.getNextProxy();
-    const config = proxy ? ProxyService.getAxiosConfig(proxy) : {};
+    const config = ProxyService.getAxiosConfig(url);
 
     try {
       const response = await axios.get(url, {

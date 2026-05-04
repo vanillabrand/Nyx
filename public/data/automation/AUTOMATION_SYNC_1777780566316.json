@@ -121,18 +121,10 @@
   },
   {
     "source_id": "538975b2",
-    "occurred_at": "Apr 27th 2026",
-    "headline": "Incident: Jet2 B738 at Leeds on Apr 27th 2026, bird strike",
+    "occurred_at": "",
+    "headline": "Jet2 B738 at Leeds on Apr 27th 2026, bird strike",
     "url": "https://avherald.com/h?article=538975b2&opt=0",
-    "source": "AVHERALD",
-    "meta": {
-      "narrative": "",
-      "metar": "",
-      "aircraft_type": "B738",
-      "operator": "jet2",
-      "airport_icao": null,
-      "severity": "Incident"
-    }
+    "source": "AVHERALD"
   },
   {
     "source_id": "5239938e",
@@ -211,15 +203,15 @@
   },
   {
     "source_id": "5388c104",
-    "occurred_at": "Jan 29th 2026",
-    "headline": "Incident: Smartwings B38M near Valencia on Jan 29th 2026, engine problem",
+    "occurred_at": "",
+    "headline": "",
     "url": "https://avherald.com/h?article=5388c104&opt=0",
     "source": "AVHERALD",
     "meta": {
       "narrative": "",
       "metar": "",
-      "aircraft_type": "B38M",
-      "operator": "Smartwings",
+      "aircraft_type": null,
+      "operator": null,
       "airport_icao": null,
       "severity": "Incident"
     }
@@ -286,10 +278,18 @@
   },
   {
     "source_id": "538789b8",
-    "occurred_at": "",
-    "headline": "Delta A321 near Milwaukee on Apr 26th 2026, smoke and fire on board",
+    "occurred_at": "Apr 26th 2026",
+    "headline": "Incident: Delta A321 near Milwaukee on Apr 26th 2026, smoke and fire on board",
     "url": "https://avherald.com/h?article=538789b8&opt=0",
-    "source": "AVHERALD"
+    "source": "AVHERALD",
+    "meta": {
+      "narrative": "",
+      "metar": "",
+      "aircraft_type": "A321",
+      "operator": "Delta",
+      "airport_icao": null,
+      "severity": "Incident"
+    }
   },
   {
     "source_id": "53877234",
@@ -383,10 +383,18 @@
   },
   {
     "source_id": "53858237",
-    "occurred_at": "",
-    "headline": "United B789 near Singapore on Apr 24th 2026, electrical smell on board",
+    "occurred_at": "Apr 24th 2026",
+    "headline": "Incident: United B789 near Singapore on Apr 24th 2026, electrical smell on board",
     "url": "https://avherald.com/h?article=53858237&opt=0",
-    "source": "AVHERALD"
+    "source": "AVHERALD",
+    "meta": {
+      "narrative": "",
+      "metar": "",
+      "aircraft_type": "B789",
+      "operator": "Singapore",
+      "airport_icao": null,
+      "severity": "Incident"
+    }
   },
   {
     "source_id": "53857fd9",
@@ -510,10 +518,18 @@
   },
   {
     "source_id": "538279bc",
-    "occurred_at": "",
-    "headline": "Sichuan A320 near Harbin on Mar 27th 2024, dual generator failure",
+    "occurred_at": "Mar 27th 2024",
+    "headline": "Report: Sichuan A320 near Harbin on Mar 27th 2024, dual generator failure",
     "url": "https://avherald.com/h?article=538279bc&opt=0",
-    "source": "AVHERALD"
+    "source": "AVHERALD",
+    "meta": {
+      "narrative": "",
+      "metar": "",
+      "aircraft_type": "A320",
+      "operator": "Sichuan",
+      "airport_icao": null,
+      "severity": "Incident"
+    }
   },
   {
     "source_id": "5382785e",
@@ -607,18 +623,10 @@
   },
   {
     "source_id": "5380cd1f",
-    "occurred_at": "Apr 18th 2026",
-    "headline": "Incident: China Airlines B744 near Whitehorse on Apr 18th 2026, smoke indication on board",
+    "occurred_at": "",
+    "headline": "China Airlines B744 near Whitehorse on Apr 18th 2026, smoke indication on board",
     "url": "https://avherald.com/h?article=5380cd1f&opt=0",
-    "source": "AVHERALD",
-    "meta": {
-      "narrative": "",
-      "metar": "",
-      "aircraft_type": "B744",
-      "operator": "China Airlines",
-      "airport_icao": null,
-      "severity": "Incident"
-    }
+    "source": "AVHERALD"
   },
   {
     "source_id": "537f6a09",

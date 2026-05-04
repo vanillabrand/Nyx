@@ -6,6 +6,7 @@ import path from 'path';
 import { ProxyService } from '../../src/services/ProxyService.ts';
 import type { ScrapeMission, ScrapedIncident } from './PayloadSchema.ts';
 import patterns from '../../src/constants/aviation_patterns.json' with { type: 'json' };
+import airportLookup from '../../src/constants/airport_lookup.json' with { type: 'json' };
 
 export class ProAngelos_ParallelScraper {
   private mission: ScrapeMission;
@@ -17,28 +18,35 @@ export class ProAngelos_ParallelScraper {
   }
 
   private async safeRequest(url: string, retries = 3): Promise<any> {
-    const axiosConfig = ProxyService.getAxiosConfig();
+    const axiosConfig = ProxyService.getAxiosConfig(url);
     for (let i = 0; i < retries; i++) {
       try {
         return await axios.get(url, {
           ...axiosConfig,
-          headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
-          timeout: 30000
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Referer': 'https://avherald.com/',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          },
+          timeout: 45000
         });
       } catch (e: any) {
         if (i === retries - 1) throw e;
         console.warn(`⚠️ [HUD] Connection retry ${i + 1}/3 for ${url}`);
-        await new Promise(r => setTimeout(r, 2000));
+        await new Promise(r => setTimeout(r, 5000));
       }
     }
   }
 
   async execute() {
-    console.log(`[${this.mission.mission_id}] ⚡ Starting high-velocity mission...`);
+    console.log(`[${this.mission.mission_id}] ⚡ Starting mission (DIRECT LINK MODE)...`);
     const targetsData = await Promise.all(this.mission.targets.map(target => this.processTarget(target)));
     const flatTargets = targetsData.flat().filter(Boolean);
     
-    console.log(`[${this.mission.mission_id}] 📡 Found ${flatTargets.length} index records. Hydrating deep intelligence...`);
+    console.log(`[${this.mission.mission_id}] 📡 Found ${flatTargets.length} records. Deep hydration active...`);
 
     const hydratedResults = await Promise.all(
       flatTargets.map(incident => 
@@ -47,7 +55,6 @@ export class ProAngelos_ParallelScraper {
             const details = await this.scrapeDetails(incident.url);
             return { ...incident, ...details };
           } catch (e) {
-            console.error(`❌ [HUD] Hydration failed: ${incident.url}`);
             return incident;
           }
         })
@@ -60,16 +67,12 @@ export class ProAngelos_ParallelScraper {
       if (!uniqueMap.has(id)) uniqueMap.set(id, incident);
     });
 
-    const flattened = Array.from(uniqueMap.values());
-    this.saveResults(flattened);
-    console.log(`[${this.mission.mission_id}] 🎯 Mission accomplished. Unique records: ${flattened.length}`);
-    return flattened;
+    this.saveResults(Array.from(uniqueMap.values()));
+    return Array.from(uniqueMap.values());
   }
 
   private async processTarget(baseUrl: string) {
-    if (baseUrl.includes('article=')) {
-      return [await this.limit(() => this.scrapeDetails(baseUrl))];
-    }
+    if (baseUrl.includes('article=')) return [await this.limit(() => this.scrapeDetails(baseUrl))];
     const pagePromises = [];
     for (let p = 1; p <= this.mission.engine_config.depth_per_url; p++) {
       const pageUrl = baseUrl.includes('?') ? `${baseUrl}&page=${p}` : `${baseUrl}?page=${p}`;
@@ -92,10 +95,8 @@ export class ProAngelos_ParallelScraper {
           currentDate = text;
           return;
         }
-
         const link = $(tr).find('a[href*="article="]');
         const headlineSpan = $(tr).find('span.headline, span.headline_avherald');
-        
         if (link.length > 0 && headlineSpan.length > 0) {
           pageIncidents.push({
             source_id: link.attr('href')?.split('article=')[1]?.split('&')[0] || '',
@@ -113,68 +114,50 @@ export class ProAngelos_ParallelScraper {
   private async scrapeDetails(url: string) {
     try {
       const response = await this.safeRequest(url);
+      if (response.data.includes('closed access to proxies')) {
+        throw new Error('PROXY_BLOCKED');
+      }
+      
       const $ = cheerio.load(response.data);
-      
-      // Clinical Production Selectors
       const headline = ($('span.headline_article').first().text() || $('span.headline').first().text() || $('title').text()).trim();
+      let narrative = $('span.sitetext').first().text().trim();
       
-      // Robust Narrative Extraction: Find the main article cell
-      let narrative = '';
-      let metar = '';
-
-      // AVHerald usually puts narrative in a <td> containing "By Simon Hradecky"
-      $('td').each((_, td) => {
-        const html = $(td).html() || '';
-        if (html.includes('By Simon Hradecky') && html.length > 200) {
-          // Extract narrative (everything after the timestamp/author)
+      if (!narrative || narrative.length < 50) {
+        $('td').each((_, td) => {
           const text = $(td).text();
-          const splitIdx = text.indexOf('Z)');
-          if (splitIdx !== -1) {
-            narrative = text.substring(splitIdx + 2).trim();
-          } else {
-            narrative = text.split('Simon Hradecky')[1]?.trim() || text;
+          if (text.includes('By Simon Hradecky') && text.length > 200) {
+            const splitIdx = text.indexOf('Z)');
+            narrative = splitIdx !== -1 ? text.substring(splitIdx + 2).trim() : text.split('Simon Hradecky')[1]?.trim() || text;
+            return false;
           }
-          
-          // Extract METAR
-          if (html.includes('Metars:')) {
-            const metarPart = html.split('Metars:')[1]?.split('<')[0] || '';
-            metar = metarPart.trim();
-          }
-          return false; // Found it
-        }
-      });
-
-      // fallback to any span with narrative-like content
-      if (!narrative) {
-        narrative = ($('span.article_text').text() || $('span.article_avherald').text() || '').trim();
+        });
       }
 
-      // 1. Hardened Entity Recognition
-      const findEntity = (list: string[], text: string) => {
-        let bestMatch = null;
-        let earliestPos = Infinity;
-        for (const item of list) {
-          if (item.length < 3) continue;
-          const idx = text.toUpperCase().indexOf(item.toUpperCase());
-          if (idx !== -1 && idx < earliestPos) {
-            earliestPos = idx;
-            bestMatch = item;
-          }
+      let metar = '';
+      const metarMatch = response.data.match(/Metars:<\/span>\s*([^<]+)/i);
+      if (metarMatch) metar = metarMatch[1].trim();
+
+      const lookupIATA = (name: string) => {
+        if (!name || name === 'UNKNOWN') return 'UNK';
+        const clean = name.toLowerCase().replace(/[\(\)].*$/, '').trim();
+        if ((airportLookup as any)[clean]) return (airportLookup as any)[clean];
+        const parts = clean.split(/[,\s]+/);
+        for (const part of parts) {
+          if (part.length < 3) continue;
+          if ((airportLookup as any)[part]) return (airportLookup as any)[part];
         }
-        return bestMatch;
+        return clean.substring(0, 3).toUpperCase();
       };
 
-      const aircraft = findEntity(patterns.aircraft, headline) || 'UNKNOWN';
-      const airline = findEntity(patterns.airlines, headline) || 'UNKNOWN';
+      const aircraft = (patterns.aircraft as string[]).find(a => headline.toUpperCase().includes(a.toUpperCase())) || 'UNKNOWN';
+      const airline = (patterns.airlines as string[]).find(a => headline.toUpperCase().includes(a.toUpperCase())) || 'UNKNOWN';
       
-      // 2. Flight Path Intelligence (Regex Extraction from Narrative)
       let departure = 'UNKNOWN';
       let destination = 'UNKNOWN';
-      const routeMatch = narrative.match(/(?:from|dep|departing)\s+([A-Z][a-z\s,.\-()]{3,40})\s+(?:to|arr|arriving)\s+([A-Z][a-z\s,.\-()]{3,40})/i);
-      
+      const routeMatch = narrative.match(/(?:from|dep|departing)\s+([^,]+(?:,[^,]+)?)\s+(?:to|arr|arriving)\s+([^,]+(?:,[^,]+)?)/i);
       if (routeMatch) {
-        departure = routeMatch[1].split(',')[0].split('(')[0].trim().toUpperCase();
-        destination = routeMatch[2].split(',')[0].split('(')[0].trim().toUpperCase();
+        departure = lookupIATA(routeMatch[1].split('performing')[0].trim());
+        destination = lookupIATA(routeMatch[2].split('with')[0].trim());
       }
 
       return {
@@ -188,19 +171,14 @@ export class ProAngelos_ParallelScraper {
           destination
         }
       };
-    } catch { 
-      return { meta: { departure: 'UNKNOWN', destination: 'UNKNOWN' } };
+    } catch (e: any) { 
+      console.error(`❌ [HUD] Hydration failed: ${url} (${e.message})`);
+      return { meta: { departure: 'UNK', destination: 'UNK' } }; 
     }
   }
 
   private saveResults(data: any[]) {
-    const finalPath = path.join(process.cwd(), 'public', 'data', 'incidents.json');
-    fs.writeFileSync(finalPath, JSON.stringify(data, null, 2));
-    
-    const logPath = path.join(process.cwd(), 'public', 'data', 'automation_log.json');
-    fs.writeFileSync(logPath, JSON.stringify({
-      last_sync: new Date().toISOString(),
-      status: 'ACTIVE'
-    }, null, 2));
+    fs.writeFileSync(path.join(process.cwd(), 'public/data/incidents.json'), JSON.stringify(data, null, 2));
+    fs.writeFileSync(path.join(process.cwd(), 'public/data/automation_log.json'), JSON.stringify({ last_sync: new Date().toISOString(), status: 'ACTIVE' }, null, 2));
   }
 }
