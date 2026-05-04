@@ -31,7 +31,9 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
 
   const pollIndexRef = useRef(0);
 
-  const [trafficMode, setTrafficMode] = useState<'OFF' | 'SELECTED' | 'ALL'>('ALL');
+  const [trafficMode, setTrafficMode] = useState<'OFF' | 'SELECTED' | 'ALL' | 'HEAVY' | 'PRIVATE' | 'HELI'>('ALL');
+  const trafficModeRef = useRef(trafficMode);
+  useEffect(() => { trafficModeRef.current = trafficMode; }, [trafficMode]);
 
   const globeRadius = 100;
 
@@ -118,94 +120,113 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
     flightsGroupRef.current = flightsGroup;
     rotationGroup.add(flightsGroup);
 
-    // 3. Live Telemetry Polling via ADSB.lol
-    // --- Multi-Model Geometry Factory ---
-    const planeMaterial = new THREE.MeshPhongMaterial({ 
-      color: 0x8B0A14,
-      shininess: 30,
-      specular: 0x444444
-    });
-    const emergencyMaterial = new THREE.MeshPhongMaterial({ 
-      color: 0xff2020,
-      shininess: 50,
-      specular: 0xffffff
-    });
+    const materials = {
+      classic: new THREE.MeshPhongMaterial({ color: 0xff4d4d, emissive: 0x220000, shininess: 80, specular: 0x444444 }),
+      widebody: new THREE.MeshPhongMaterial({ color: 0xffffff, emissive: 0x111111, shininess: 100, specular: 0xffffff }),
+      privateJet: new THREE.MeshPhongMaterial({ color: 0x00f2ff, emissive: 0x002222, shininess: 120, specular: 0x00ffff }),
+      heli: new THREE.MeshPhongMaterial({ color: 0xffea00, emissive: 0x222200, shininess: 60, specular: 0xffffff }),
+      emergency: new THREE.MeshPhongMaterial({ color: 0xff0000, emissive: 0xbb0000, shininess: 150, specular: 0xffffff })
+    };
 
     const createGeometries = () => {
-      // 1. Classic / Medium (A320 style)
-      const fuselage = new THREE.ConeGeometry(0.3, 2.2, 8);
-      fuselage.rotateX(-Math.PI / 2);
-      const wings = new THREE.BoxGeometry(2.4, 0.08, 0.7);
-      wings.translate(0, 0, 0.1);
-      const tail = new THREE.BoxGeometry(0.08, 0.6, 0.4);
-      tail.translate(0, 0.3, 0.8);
-      const classic = BufferGeometryUtils.mergeGeometries([fuselage, wings, tail]);
+      // 1. Classic (Sleek A320 style)
+      const fuselage = new THREE.CylinderGeometry(0.28, 0.22, 2.4, 12);
+      fuselage.rotateX(Math.PI / 2);
+      const wings = new THREE.BoxGeometry(2.6, 0.04, 0.6);
+      wings.translate(0, -0.05, 0);
+      const tailFin = new THREE.BoxGeometry(0.04, 0.6, 0.4);
+      tailFin.translate(0, 0.4, 1.0);
+      const tailHoriz = new THREE.BoxGeometry(0.8, 0.02, 0.3);
+      tailHoriz.translate(0, 0, 1.0);
+      const classic = BufferGeometryUtils.mergeGeometries([fuselage, wings, tailFin, tailHoriz]);
 
-      // 2. Widebody / Heavy (B747/A380 style)
-      const wFuselage = new THREE.ConeGeometry(0.45, 2.8, 8);
-      wFuselage.rotateX(-Math.PI / 2);
-      const wWings = new THREE.BoxGeometry(3.6, 0.12, 1.0);
-      wWings.translate(0, 0, 0.2);
-      // Add 4 small engines
-      const engineGeom = new THREE.CylinderGeometry(0.12, 0.12, 0.4, 6);
-      engineGeom.rotateX(Math.PI / 2);
-      const e1 = engineGeom.clone().translate(0.7, -0.1, 0.3);
-      const e2 = engineGeom.clone().translate(1.2, -0.1, 0.4);
-      const e3 = engineGeom.clone().translate(-0.7, -0.1, 0.3);
-      const e4 = engineGeom.clone().translate(-1.2, -0.1, 0.4);
-      const widebody = BufferGeometryUtils.mergeGeometries([wFuselage, wWings, e1, e2, e3, e4, tail.clone().scale(1.2, 1.2, 1.2).translate(0, 0.1, 0.2)]);
+      // 2. Widebody (Premium 4-Engine Heavy)
+      const wFuselage = new THREE.CylinderGeometry(0.45, 0.35, 3.2, 16);
+      wFuselage.rotateX(Math.PI / 2);
+      const hump = new THREE.SphereGeometry(0.48, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2);
+      hump.scale(1.0, 0.5, 1.8);
+      hump.translate(0, 0.25, -0.8);
+      const wWings = new THREE.BoxGeometry(4.2, 0.08, 0.9);
+      wWings.rotateY(Math.PI / 12); // Swept
+      const engine = new THREE.CylinderGeometry(0.18, 0.18, 0.5, 12);
+      engine.rotateX(Math.PI / 2);
+      const e1 = engine.clone().translate(0.9, -0.2, -0.1);
+      const e2 = engine.clone().translate(1.6, -0.2, 0.2);
+      const e3 = engine.clone().translate(-0.9, -0.2, -0.1);
+      const e4 = engine.clone().translate(-1.6, -0.2, 0.2);
+      const widebody = BufferGeometryUtils.mergeGeometries([wFuselage, hump, wWings, e1, e2, e3, e4, tailFin.clone().scale(1.5, 1.5, 1.5).translate(0, 0.2, 0.5)]);
 
-      // 3. Private Jet / Small (Gulfstream style)
-      const pFuselage = new THREE.ConeGeometry(0.25, 1.8, 8);
-      pFuselage.rotateX(-Math.PI / 2);
-      const pWings = new THREE.BoxGeometry(2.0, 0.06, 0.5);
-      pWings.rotateY(Math.PI / 12); // Swept
-      pWings.translate(0, 0, 0.3);
-      // Rear engines
-      const re1 = engineGeom.clone().scale(0.6, 0.6, 0.8).translate(0.25, 0, 0.7);
-      const re2 = engineGeom.clone().scale(0.6, 0.6, 0.8).translate(-0.25, 0, 0.7);
-      const privateJet = BufferGeometryUtils.mergeGeometries([pFuselage, pWings, re1, re2, tail.clone().translate(0, 0, -0.1)]);
+      // 3. Private Jet (Superior T-Tail)
+      const pFuselage = new THREE.CylinderGeometry(0.2, 0.15, 2.0, 10);
+      pFuselage.rotateX(Math.PI / 2);
+      const pWings = new THREE.BoxGeometry(2.2, 0.03, 0.5);
+      pWings.rotateY(Math.PI / 6); // High sweep
+      pWings.translate(0, -0.05, 0.2);
+      const tTailVert = new THREE.BoxGeometry(0.04, 0.7, 0.4);
+      tTailVert.translate(0, 0.35, 0.9);
+      const tTailHoriz = new THREE.BoxGeometry(1.0, 0.02, 0.3);
+      tTailHoriz.translate(0, 0.7, 0.9);
+      const pEngine = new THREE.CylinderGeometry(0.12, 0.12, 0.4, 8);
+      pEngine.rotateX(Math.PI / 2);
+      const pe1 = pEngine.clone().translate(0.3, 0.15, 0.7);
+      const pe2 = pEngine.clone().translate(-0.3, 0.15, 0.7);
+      const privateJet = BufferGeometryUtils.mergeGeometries([pFuselage, pWings, tTailVert, tTailHoriz, pe1, pe2]);
 
-      // 4. Helicopter (Simple representative shape)
-      const hBody = new THREE.SphereGeometry(0.4, 8, 8);
-      const hTail = new THREE.BoxGeometry(0.1, 0.1, 1.2);
-      hTail.translate(0, 0, 0.6);
-      const hRotor = new THREE.CylinderGeometry(1.2, 1.2, 0.02, 16);
-      hRotor.translate(0, 0.4, 0);
-      const heli = BufferGeometryUtils.mergeGeometries([hBody, hTail, hRotor]);
+      // 4. Helicopter (Skids & Body)
+      const hBody = new THREE.CapsuleGeometry(0.35, 0.6, 4, 12);
+      hBody.rotateX(Math.PI / 2);
+      const skid = new THREE.BoxGeometry(0.04, 0.04, 1.2);
+      const s1 = skid.clone().translate(0.25, -0.4, 0);
+      const s2 = skid.clone().translate(-0.25, -0.4, 0);
+      const hTail = new THREE.CylinderGeometry(0.05, 0.02, 1.0);
+      hTail.rotateX(Math.PI / 2);
+      hTail.translate(0, 0, 0.8);
+      const heliBody = BufferGeometryUtils.mergeGeometries([hBody, s1, s2, hTail]);
 
-      return { classic, widebody, privateJet, heli };
+      return { classic, widebody, privateJet, heliBody };
     };
 
     const geometries = createGeometries();
+    const rotorMeshes = new Map<string, THREE.Object3D>();
 
-    const getPlaneType = (typeCode?: string) => {
+    const getPlaneType = (typeCode?: string): keyof typeof materials => {
       if (!typeCode) return 'classic';
       const t = typeCode.toUpperCase();
-      // Heats / Widebodies
-      if (['A388', 'B744', 'B748', 'A359', 'A35K', 'B77L', 'B77W', 'B772', 'B773', 'B788', 'B789', 'B78X'].includes(t)) return 'widebody';
-      // Private / Small Jets
-      if (['GLF5', 'GLF6', 'C560', 'C25B', 'LJ35', 'LJ60', 'CL30', 'CL60', 'E55P', 'HA42'].includes(t)) return 'privateJet';
-      // Helicopters
-      if (['EC35', 'EC45', 'B06', 'R44', 'R66', 'H135', 'H145', 'A109', 'A139', 'MI8', 'UH60'].includes(t)) return 'heli';
+      if (['A388', 'B744', 'B748', 'A359', 'A35K', 'B77L', 'B77W', 'B772', 'B773', 'B788', 'B789', 'B78X', 'A332', 'A333', 'A343', 'A346', 'MD11'].includes(t)) return 'widebody';
+      if (['GLF5', 'GLF6', 'C560', 'C25B', 'LJ35', 'LJ60', 'CL30', 'CL60', 'E55P', 'HA42', 'C172', 'C182', 'P28A', 'SR22'].includes(t)) return 'privateJet';
+      if (['EC35', 'EC45', 'B06', 'R44', 'R66', 'H135', 'H145', 'A109', 'A139', 'MI8', 'UH60', 'H60'].includes(t)) return 'heli';
       return 'classic';
     };
 
-    const createPlaneMesh = (typeCode?: string) => {
+    const createPlaneMesh = (hex: string, typeCode?: string) => {
       try {
         const type = getPlaneType(typeCode);
-        const geom = geometries[type as keyof typeof geometries];
-        if (!geom) {
-          console.error(`[HUD] Missing geometry for type ${type}, falling back to classic.`);
-          return new THREE.Mesh(geometries.classic, planeMaterial);
+        const mat = materials[type] || materials.classic;
+        const group = new THREE.Group();
+        group.userData.type = type;
+
+        if (type === 'heli') {
+          const body = new THREE.Mesh(geometries.heliBody, mat);
+          const rotor = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.02, 0.15), mat);
+          rotor.position.y = 0.45;
+          rotorMeshes.set(hex, rotor);
+          group.add(body, rotor);
+          group.scale.set(0.35, 0.35, 0.35);
+        } else {
+          const m = new THREE.Mesh(geometries[type as keyof typeof geometries] || geometries.classic, mat);
+          group.add(m);
+          if (type === 'widebody') group.scale.set(0.45, 0.45, 0.45);
+          else if (type === 'privateJet') group.scale.set(0.2, 0.2, 0.2);
+          else group.scale.set(0.3, 0.3, 0.3);
         }
-        const mesh = new THREE.Mesh(geom, planeMaterial);
-        mesh.scale.set(0.25, 0.25, 0.25);
-        return mesh;
+        
+        group.userData.lastMat = mat;
+        return group;
       } catch (e) {
-        console.error("[HUD] Failed to create plane mesh:", e);
-        // Absolute fallback to a simple box if everything fails
-        return new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), planeMaterial);
+        const fallback = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), materials.classic);
+        const g = new THREE.Group();
+        g.add(fallback);
+        return g;
       }
     };
 
@@ -230,6 +251,7 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
     };
 
     const activePlanes = new Map<string, any>();
+    const requestRef = { current: 0 };
     const TRANSITION_DURATION = 30000;
 
     const fetchLiveFlights = async () => {
@@ -254,113 +276,109 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
           flights = flights.sort(() => Math.random() - 0.5).slice(0, 5000);
         }
 
-        // If API fails completely, show a global simulation so the world isn't empty
         if (!apiSuccess && activePlanes.size === 0) {
           console.log("[HUD] Initializing Global Tactical Simulation (200 contacts)");
-          flights = Array.from({ length: 200 }).map(() => ({
-            hex: 'SIM' + Math.floor(Math.random() * 100000),
-            flight: 'STEL' + Math.floor(Math.random() * 1000),
+          flights = Array.from({ length: 200 }).map((_, i) => ({
+            hex: 'SIM' + i, // Persistent ID to prevent teleportation
+            flight: 'STEL' + i,
             lat: (Math.random() * 180) - 90,
             lon: (Math.random() * 360) - 180,
             alt_geom: 10000 + Math.random() * 30000,
             alt_baro: 10000 + Math.random() * 30000,
             track: Math.random() * 360,
-            gs: 450
+            gs: 450,
+            t: ['A388', 'GLF6', 'EC35', 'A320'][i % 4] // Diversify types for filter testing
           }));
         }
 
         if (flights && flights.length > 0) {
           const currentHexes = new Set();
           const now = Date.now();
+          
+          // --- HIGH-PERFORMANCE BATCHED PROCESSING ---
+          let index = 0;
+          const BATCH_SIZE = 500; // Rapid tactical population
 
-          flights.forEach((flight: any) => {
-            if (!flight.hex || flight.lat === undefined || flight.lon === undefined) return;
-            currentHexes.add(flight.hex);
+          const processBatch = () => {
+            const end = Math.min(index + BATCH_SIZE, flights.length);
+            for (; index < end; index++) {
+              const flight = flights[index];
+              if (!flight.hex || flight.lat === undefined || flight.lon === undefined) continue;
+              currentHexes.add(flight.hex);
 
-            let alt = 5000;
-            if (typeof flight.alt_geom === 'number') alt = flight.alt_geom;
-            else if (typeof flight.alt_baro === 'number') alt = flight.alt_baro;
-            else if (flight.alt_geom === 'ground' || flight.alt_baro === 'ground') alt = 0;
+              const alt = Number(flight.alt_geom || flight.alt_baro || 0);
+              const pos = latLonToVector3(flight.lat, flight.lon, globeRadius, alt);
+              const currentTrack = Number(flight.track || 0);
+              const gs = Number(flight.gs || 450);
 
-            const pos = latLonToVector3(flight.lat, flight.lon, globeRadius, alt);
-            if (Number.isNaN(pos.x) || Number.isNaN(pos.y) || Number.isNaN(pos.z)) return;
+              const trackRad = currentTrack * (Math.PI / 180);
+              const dist = (gs * 60) / 3600; 
+              const dLat = (Math.cos(trackRad) * dist) / 60;
+              const dLon = (Math.sin(trackRad) * dist) / (60 * Math.cos(flight.lat * Math.PI / 180));
+              const projectedTarget = latLonToVector3(flight.lat + dLat, flight.lon + dLon, globeRadius, alt);
 
-            if (activePlanes.has(flight.hex)) {
               const planeData = activePlanes.get(flight.hex);
+              if (planeData) {
+                planeData.startPos.copy(planeData.mesh.position);
+                planeData.targetPos.copy(projectedTarget);
+                planeData.startTime = now;
+                planeData.startTrack = Number(planeData.mesh.userData.currentTrack) || currentTrack;
+                planeData.targetTrack = currentTrack;
+                planeData.flightData = flight;
+                planeData.staleCount = 0; 
+              } else {
+                const mesh = createPlaneMesh(flight.hex, flight.t);
+                mesh.position.copy(pos);
+                mesh.visible = false; 
+                flightsGroup.add(mesh);
 
-              // Defensive checks for position data
-              if (flight.lat === undefined || flight.lon === undefined) return;
-
-              // SMOOTHING FIX: Capture the ACTUAL current interpolated position as the new start
-              planeData.startPos.copy(planeData.mesh.position);
-              
-              // Correct track interpolation: handle 360 wrap-around
-              const elapsed = now - planeData.startTime;
-              const progress = Math.min(elapsed / TRANSITION_DURATION, 1.2);
-              
-              const startT = Number(planeData.startTrack) || 0;
-              const targetT = Number(flight.track || flight.mag_heading || flight.true_heading) || 0;
-
-              let diff = targetT - startT;
-              if (diff > 180) diff -= 360;
-              if (diff < -180) diff += 360;
-              const currentTrack = startT + diff * progress;
-
-              planeData.startTrack = currentTrack;
-              planeData.targetPos.copy(pos);
-              planeData.targetTrack = targetT;
-              planeData.startTime = now;
-              planeData.flightData = flight;
-              planeData.hasTwoPoints = true;
-              planeData.mesh.visible = true;
-            } else {
-              const mesh = createPlaneMesh(flight.t);
-              mesh.position.copy(pos);
-              mesh.visible = false; 
-              flightsGroup.add(mesh);
-
-              const initialTrack = Number(flight.track || flight.mag_heading || flight.true_heading) || 0;
-
-              activePlanes.set(flight.hex, {
-                mesh,
-                startPos: pos.clone(),
-                targetPos: pos.clone(),
-                startTime: now,
-                startTrack: initialTrack,
-                targetTrack: initialTrack,
-                hasTwoPoints: false,
-                flightData: flight
-              });
-            }
-          });
-
-          // Garbage Collection: ONLY remove if the API actually gave us a fresh list
-          if (apiSuccess) {
-            for (const [hex, data] of activePlanes.entries()) {
-              if (!currentHexes.has(hex) && !hex.startsWith('SIM')) {
-                flightsGroup.remove(data.mesh);
-                activePlanes.delete(hex);
+                activePlanes.set(flight.hex, {
+                  mesh,
+                  startPos: pos.clone(),
+                  targetPos: projectedTarget,
+                  startTime: now,
+                  startTrack: currentTrack,
+                  targetTrack: currentTrack,
+                  hasTwoPoints: true,
+                  flightData: flight,
+                  staleCount: 0
+                });
               }
             }
-          }
 
-          // Emergency Squawk Detection: scan all active planes
-          const newEmergencyHexes = new Set<string>();
-          const newEmergencyFlights: FlightState[] = [];
-          for (const [hex, data] of activePlanes.entries()) {
-            const sq = String(data.flightData?.squawk ?? '');
-            if (EMERGENCY_SQUAWKS[sq]) {
-              newEmergencyFlights.push(data.flightData);
-              newEmergencyHexes.add(hex);
-              // Switch to red emergency material
-              data.mesh.material = emergencyMaterial;
-            } else if (emergencyHexesRef.current.has(hex)) {
-              // Was emergency, no longer is — restore normal material
-              data.mesh.material = planeMaterial;
+            if (index < flights.length) {
+              requestAnimationFrame(processBatch);
+            } else {
+              // Final cleanup and Emergency Scan after batch completes
+              const newEmergencyHexes = new Set<string>();
+              const newEmergencyFlights: any[] = [];
+              
+              for (const [hex, data] of activePlanes.entries()) {
+                // 1. Cleanup stale contacts
+                if (apiSuccess && !currentHexes.has(hex) && !hex.startsWith('SIM')) {
+                  data.staleCount = (data.staleCount || 0) + 1;
+                  if (data.staleCount > 3) {
+                    flightsGroup.remove(data.mesh);
+                    activePlanes.delete(hex);
+                    rotorMeshes.delete(hex);
+                    continue; 
+                  }
+                }
+                
+                // 2. Emergency Detection
+                const sq = String(data.flightData?.squawk ?? '');
+                if (EMERGENCY_SQUAWKS[sq]) {
+                  newEmergencyFlights.push(data.flightData);
+                  newEmergencyHexes.add(hex);
+                }
+              }
+              
+              emergencyHexesRef.current = newEmergencyHexes;
+              setEmergencyFlights(newEmergencyFlights);
             }
-          }
-          emergencyHexesRef.current = newEmergencyHexes;
-          setEmergencyFlights(newEmergencyFlights);
+          };
+
+          processBatch();
         }
       } catch (error) {
         console.error("ADSB telemetry sync critical failure:", error);
@@ -401,6 +419,9 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
 
     // Dynamic Animation Loop with Plane Interpolation
     let lastTrackedSync = 0;
+    const camPosDir = new THREE.Vector3();
+    const planeDir = new THREE.Vector3();
+
     const animate = () => {
       try {
         requestAnimationFrame(animate);
@@ -409,53 +430,68 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
         const now = Date.now();
 
         // Dynamic Horizon Culling variables
-        const camPosDir = camera.position.clone().normalize();
+        camPosDir.copy(camera.position).normalize();
+        
         const r_earth = globeRadius;
         const r_cam = camera.position.length();
         const horizonCos = r_earth / r_cam;
         const cullThreshold = horizonCos - 0.15;
 
-        // Interpolate every active plane smoothly between polling ticks
         activePlanes.forEach((data) => {
           try {
-            if (!data.hasTwoPoints || !data.startPos || !data.targetPos) return;
+            if (!data.hasTwoPoints || !data.targetPos) return;
 
-            const elapsed = now - data.startTime;
-            const progress = Math.min(elapsed / TRANSITION_DURATION, 1.2);
-
-            data.mesh.position.lerpVectors(data.startPos, data.targetPos, progress);
-
-            const startRad = data.startPos.length();
-            const targetRad = data.targetPos.length();
-            const currentRadius = startRad + (targetRad - startRad) * progress;
-
-            data.mesh.position.normalize().multiplyScalar(currentRadius);
-
-            let diff = data.targetTrack - data.startTrack;
-            if (diff > 180) diff -= 360;
-            if (diff < -180) diff += 360;
-            const currentTrack = data.startTrack + diff * progress;
-
-            orientPlane(data.mesh, data.mesh.position, currentTrack);
-
-            const planeWorldPos = new THREE.Vector3();
-            data.mesh.getWorldPosition(planeWorldPos);
-            const planeDir = planeWorldPos.normalize();
-
-            const isEmergency = emergencyHexesRef.current.has(data.flightData.hex);
-            const isTracked = trackedFlightsRef.current.some(f => f.hex === data.flightData.hex);
-
+            // 1. Fast Visibility Culling (Check before any math)
+            planeDir.copy(data.mesh.position).normalize();
             let finalVisible = planeDir.dot(camPosDir) >= cullThreshold;
 
             if (finalVisible) {
-              if (trafficMode === 'OFF') {
-                finalVisible = isEmergency;
-              } else if (trafficMode === 'SELECTED') {
-                finalVisible = isEmergency || isTracked;
+              const isEmergency = emergencyHexesRef.current.has(data.flightData.hex);
+              const isTracked = trackedFlightsRef.current.some(f => f.hex === data.flightData.hex);
+              const type = data.mesh.userData.type;
+              const mode = trafficModeRef.current;
+
+              if (mode === 'OFF') finalVisible = isEmergency;
+              else if (mode === 'SELECTED') finalVisible = isEmergency || isTracked;
+              else if (mode === 'HEAVY') finalVisible = isEmergency || type === 'widebody';
+              else if (mode === 'PRIVATE') finalVisible = isEmergency || type === 'privateJet';
+              else if (mode === 'HELI') finalVisible = isEmergency || type === 'heli';
+
+              if (finalVisible) {
+                // 2. Heavy Math only for visible aircraft
+                data.mesh.position.lerp(data.targetPos, 0.015);
+                const currentRad = data.mesh.position.length();
+                const targetRad = data.targetPos.length();
+                const nextRad = THREE.MathUtils.lerp(currentRad, targetRad, 0.05);
+                data.mesh.position.normalize().multiplyScalar(nextRad);
+
+                const targetT = Number(data.targetTrack) || 0;
+                const currentT = data.mesh.userData.currentTrack || targetT;
+                let diffT = targetT - currentT;
+                if (diffT > 180) diffT -= 360;
+                if (diffT < -180) diffT += 360;
+                const newTrack = currentT + (diffT * 0.05);
+                
+                orientPlane(data.mesh, data.mesh.position, newTrack);
+                data.mesh.userData.currentTrack = newTrack;
+
+                const targetMat = isEmergency ? materials.emergency : (materials[type] || materials.classic);
+                if (data.mesh.userData.lastMat !== targetMat) {
+                  data.mesh.traverse((child) => { if ((child as any).isMesh) (child as any).material = targetMat; });
+                  data.mesh.userData.lastMat = targetMat;
+                }
+
+                const rotor = rotorMeshes.get(data.flightData.hex);
+                if (rotor) rotor.rotation.y += 0.5;
               }
             }
-
             data.mesh.visible = finalVisible;
+
+            // Animate rotors if applicable
+            const rotor = rotorMeshes.get(data.flightData.hex);
+            if (rotor && finalVisible) {
+              rotor.rotation.y += 0.5; // High-speed rotation
+            }
           } catch (e) {
             // Silently skip individual plane errors to keep the scene running
           }
@@ -503,11 +539,13 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
 
         controls.update();
         renderer.render(scene, camera);
+        requestRef.current = requestAnimationFrame(animate);
       } catch (e) {
         console.error("[HUD] Render loop failure:", e);
+        requestRef.current = requestAnimationFrame(animate);
       }
     };
-    animate();
+    requestRef.current = requestAnimationFrame(animate);
 
     // Screen-space click interactivity
     const mouse = new THREE.Vector2();
@@ -585,6 +623,7 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
     window.addEventListener('resize', handleResize);
 
     return () => {
+      cancelAnimationFrame(requestRef.current);
       renderer.domElement.removeEventListener('dblclick', onDblClick);
       window.removeEventListener('click', onMouseClick);
       window.removeEventListener('resize', handleResize);
@@ -611,6 +650,18 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative' }}>
       <div ref={mountRef} style={{ width: '100%', height: '100%' }} />
+
+      {/* Tactical Gradient Fades (Left/Right) - Below UI panels, above Globe */}
+      <div style={{
+        position: 'absolute', top: 0, left: 0, width: '580px', height: '100%',
+        background: 'linear-gradient(to right, #030304 35%, transparent 100%)',
+        zIndex: 5, pointerEvents: 'none'
+      }} />
+      <div style={{
+        position: 'absolute', top: 0, right: 0, width: '480px', height: '100%',
+        background: 'linear-gradient(to left, #030304 35%, transparent 100%)',
+        zIndex: 5, pointerEvents: 'none'
+      }} />
 
       {/* Emergency alert banner — bottom centre, always on top */}
       <EmergencyAlertBanner flights={emergencyFlights} />
@@ -641,9 +692,9 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
       }}>
         <button
           onClick={() => {
-            if (trafficMode === 'OFF') setTrafficMode('SELECTED');
-            else if (trafficMode === 'SELECTED') setTrafficMode('ALL');
-            else setTrafficMode('OFF');
+            const modes: any[] = ['OFF', 'SELECTED', 'ALL', 'HEAVY', 'PRIVATE', 'HELI'];
+            const nextIdx = (modes.indexOf(trafficMode) + 1) % modes.length;
+            setTrafficMode(modes[nextIdx]);
           }}
           style={{
             background: trafficMode !== 'OFF' ? 'rgba(207, 20, 43, 0.2)' : 'rgba(0, 0, 0, 0.5)',
@@ -656,13 +707,18 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
             cursor: 'pointer',
             borderRadius: '4px',
             transition: 'all 0.2s ease',
+            minWidth: '180px',
+            textAlign: 'center',
             backdropFilter: 'blur(4px)',
             boxShadow: trafficMode !== 'OFF' ? '0 0 15px rgba(207, 20, 43, 0.3)' : 'none'
           }}
         >
-          {trafficMode === 'OFF' && 'GLOBAL TRAFFIC: OFF'}
-          {trafficMode === 'SELECTED' && 'GLOBAL TRAFFIC: SELECTED'}
-          {trafficMode === 'ALL' && 'GLOBAL TRAFFIC: ALL'}
+          {trafficMode === 'OFF' && 'TRAFFIC: OFF'}
+          {trafficMode === 'SELECTED' && 'TRAFFIC: SELECTED'}
+          {trafficMode === 'ALL' && 'TRAFFIC: ALL'}
+          {trafficMode === 'HEAVY' && 'TRAFFIC: HEAVY ONLY'}
+          {trafficMode === 'PRIVATE' && 'TRAFFIC: PRIVATE ONLY'}
+          {trafficMode === 'HELI' && 'TRAFFIC: HELI ONLY'}
         </button>
         <button
           onDoubleClick={(e) => e.stopPropagation()}

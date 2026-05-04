@@ -75,9 +75,12 @@ const EmergencyCard: React.FC<EmergencyCardProps> = ({ flight, onDismiss }) => {
           onClick={onDismiss}
           style={{
             position: 'absolute', top: '10px', left: '10px', zIndex: 10,
-            background: 'none', border: 'none', color: 'rgba(255,255,255,0.25)',
-            cursor: 'pointer', fontSize: '0.65rem', padding: '2px', lineHeight: 1,
+            background: 'none', border: 'none', color: '#ff0000',
+            cursor: 'pointer', fontSize: '1.2rem', fontWeight: 'bold', padding: '2px', lineHeight: 1,
+            transition: 'transform 0.1s'
           }}
+          onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.2)'}
+          onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
           title="Acknowledge"
         >✕</button>
 

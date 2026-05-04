@@ -230,8 +230,9 @@ const FlightTrackingGrid: React.FC<FlightTrackingGridProps> = ({ trackedFlights,
         {/* 2-column grid — only renders actual tracked flights, no blank slots */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(2, 192px)',
-          gap: '5px',
+          gridTemplateColumns: '1fr 1fr',
+          gap: '8px',
+          width: '100%'
         }}>
           {trackedFlights.map((flight, i) => {
             const squawk = flight.squawk ? (squawkLookup[flight.squawk] ?? null) : null;
@@ -242,7 +243,7 @@ const FlightTrackingGrid: React.FC<FlightTrackingGridProps> = ({ trackedFlights,
                 key={flight.hex}
                 ref={el => { cardRefs.current[i] = el; }}
                 style={{
-                  width: '194px',
+                  width: '100%',
                   height: '186px',
                   background: 'transparent',
                   border: 'none',
@@ -278,10 +279,13 @@ const FlightTrackingGrid: React.FC<FlightTrackingGridProps> = ({ trackedFlights,
                         {flight.squawk ? `◈ ${flight.squawk}` : '◈ ----'}
                       </div>
                       <button onClick={() => onRemove(flight.hex)} style={{
-                        background: 'none', border: 'none', color: 'rgba(220,80,80,0.35)',
-                        cursor: 'pointer', fontSize: '0.55rem', padding: '0', lineHeight: 1,
-                        transition: 'color 0.15s'
-                      }} title="Remove from tracking">✕</button>
+                        background: 'none', border: 'none', color: '#ff0000',
+                        cursor: 'pointer', fontSize: '1rem', fontWeight: 'bold', padding: '0', lineHeight: 1,
+                        transition: 'transform 0.1s'
+                      }} 
+                      onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.2)'}
+                      onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                      title="Remove from tracking">✕</button>
                     </div>
                   </div>
 
