@@ -74,19 +74,37 @@ const BLACKLIST = new Set([
   // Articles/prepositions
   'AND', 'THE', 'FOR', 'WITH', 'FROM', 'SAO', 'ALL', 'OFF', 'OUT',
   'WAS', 'ITS', 'HAD', 'HAS', 'BUT', 'NOT', 'ARE', 'ONE', 'TWO',
-  'VIA', 'NON', 'STOP', 'BEEN', 'WERE', 'SAID', 'WILL',
+  'VIA', 'NON', 'STOP', 'BEEN', 'WERE', 'SAID', 'WILL', 'NOW',
+  // Verbs / Phrases that collide with short airline codes
+  'GO', 'DO', 'AM', 'PM', 'IF', 'OR', 'SO', 'AD', 'ME', 'MY', 'HE', 'SHE', 'WE',
+  'SET', 'GET', 'GOT', 'SEE', 'SAW', 'RUN', 'DID', 'CAN', 'ITS', 'HAS', 'HAD',
+  'TAKE', 'TAKES', 'TOOK', 'TAKEN', 'PUT', 'PUTS', 'OFF', 'ON', 'UP', 'DOWN',
+  // Aviation technical terms (prevent 'SQUAWK' → SQ = Singapore Airlines)
+  'RUNWAY', 'RWY', 'APPROACH', 'STALL', 'MAYDAY', 'PAN', 'SQUAWK', 'RADAR',
+  'TRANSPONDER', 'VECTOR', 'COURSE', 'HEADING', 'TRACK', 'BEARING', 'ALTITUDE',
+  'SQUAWKING', 'REPORTING', 'DESCENDING', 'CLIMBING', 'LEVEL', 'GROUND',
+  'TOWER', 'CENTER', 'CENTRE', 'APPROACHING', 'DEPARTING', 'LANDING', 'TAKEOFF',
+  'TAXI', 'TAXIING', 'HOLD', 'HOLDING', 'AROUND', 'TOUCHDOWN', 'GOAROUND',
+  'HUD', 'TCAS', 'EGPWS', 'GPWS', 'FMS', 'MCP', 'ILS', 'VHF', 'UHF', 'HF',
+  'ELT', 'CVR', 'FDR', 'APU', 'GPU', 'AOG', 'NOTAM', 'METAR', 'TAF', 'ATIS',
+  'SID', 'STAR', 'RNAV', 'RNP', 'VNAV', 'LNAV', 'LOC', 'GS', 'GP', 'OM', 'MM', 'IM',
+  // Crew / Person titles
+  'CAPTAIN', 'PILOT', 'COPILOT', 'CREW', 'OFFICER', 'PASSENGER', 'PASSENGERS',
+  'ATTENDANT', 'ENGINEER', 'CONTROLLER', 'DIRECTOR', 'MANAGER',
   // Manufacturers (must never match as airline)
   'AIRBUS', 'BOEING', 'CESSNA', 'PIPER', 'EMBRAER', 'BOMBARDIER',
-  'FOKKER', 'ANTONOV', 'ILLYUSHIN', 'TUPOLEV', 'YAKOVLEV',
+  'FOKKER', 'ANTONOV', 'ILLYUSHIN', 'TUPOLEV', 'YAKOVLEV', 'SUPERJET',
   // Locations / cities that appear in headlines
   'AMSTERDAM', 'LONDON', 'PARIS', 'DUBAI', 'SYDNEY', 'TOKYO',
   'BEIJING', 'ATLANTA', 'CHICAGO', 'HEATHROW', 'GATWICK', 'NEWARK',
   'MALTA', 'VALLETTA', 'BOISE', 'HOUSTON', 'DENVER', 'MIAMI',
   'MOSCOW', 'ROME', 'BERLIN', 'MADRID', 'NAIROBI', 'KAMPALA',
+  'SAO', 'PAULO', 'BRAZIL', 'CONGO', 'AFRICA', 'CHINA', 'USA', 'VEGAS',
   // Misc false-positive triggers
   'PLANE', 'JET', 'AERO', 'CONTROL', 'CENTER', 'FIRE', 'HELICOPTER',
   'HELICOPTERS', 'INTERAGENCY', 'CHIEF', 'RAT', 'CONGO', 'FINAL',
   'STATED', 'REPORTED', 'SMOKE', 'GEAR', 'BIRD', 'MEDICAL', 'ENGINE',
+  'INCIDENT', 'ACCIDENT', 'CRASH', 'EMERGENCY', 'ALERT', 'VIDEO', 'NEWS',
 ]);
 
 // Bounded bigram cache to prevent memory leak

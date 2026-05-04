@@ -336,18 +336,24 @@ const App: React.FC = () => {
           <GlobeScene incidents={incidents} onSelectIncident={() => {}} />
         </div>
 
-        <div className="ui-overlay" style={{
+        <div style={{
           position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 4, pointerEvents: 'none',
-          display: 'grid', gridTemplateColumns: '520px 1fr 300px', gap: '24px'
+          display: 'block'
         }}>
+          {/* Global Header Bar */}
           <div style={{ 
-            position: 'absolute', top: 0, left: 0, width: '520px', height: '100%', padding: '24px',
+            position: 'absolute', top: '24px', left: '24px', right: '16px', 
+            zIndex: 101, pointerEvents: 'all' 
+          }}>
+            <div className="thin-title" style={{ fontSize: '0.65rem', opacity: 0.6, letterSpacing: '0.3em' }}>\\ AVIATION COMMAND</div>
+            <Clock />
+          </div>
+
+          <div style={{ 
+            position: 'absolute', top: '80px', left: 0, width: '520px', height: 'calc(100% - 80px)', padding: '24px',
             display: 'flex', flexDirection: 'column', gap: '24px', pointerEvents: 'none', zIndex: 100
           }}>
-            <div style={{ pointerEvents: 'all' }}>
-              <div className="thin-title" style={{ fontSize: '0.65rem', opacity: 0.6, letterSpacing: '0.3em' }}>\\ AVIATION COMMAND</div>
-              <Clock />
-            </div>
+
 
             <div style={{ pointerEvents: 'all', flex: 1 }}>
               {incidents.length === 0 ? (

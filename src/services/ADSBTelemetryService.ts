@@ -24,8 +24,8 @@ const fetchWithRetry = async (url: string, maxAttempts = 3): Promise<Response> =
     }
     try {
       const controller = new AbortController();
-      // Abort if the proxy doesn't respond within 8 seconds
-      const timeout = setTimeout(() => controller.abort(), 8000);
+      // Abort if the proxy doesn't respond within 15 seconds (increased for large global payloads)
+      const timeout = setTimeout(() => controller.abort(), 15000);
       const response = await fetch(url, { signal: controller.signal });
       clearTimeout(timeout);
       if (response.ok) return response;
@@ -33,8 +33,14 @@ const fetchWithRetry = async (url: string, maxAttempts = 3): Promise<Response> =
       throw new Error(`HTTP ${response.status}`);
     } catch (err: any) {
       lastError = err;
-      // Only retry on network-level errors (socket hang up, proxy drop, abort)
-      if (err?.name === 'AbortError' || err?.message?.includes('fetch') || err?.code === 'ECONNRESET') {
+      const msg = err?.message || '';
+      // Retry on network-level errors OR common proxy failure codes (502/503/504)
+      if (
+        err?.name === 'AbortError' || 
+        msg.includes('fetch') || 
+        err?.code === 'ECONNRESET' ||
+        msg.includes('502') || msg.includes('503') || msg.includes('504')
+      ) {
         continue; // retry
       }
       throw err; // surface unexpected errors immediately
@@ -71,6 +77,7 @@ export class ADSBTelemetryService {
   }
   // Fetch a single aircraft by hex for high-frequency tracked-plane updates
   static async getFlightByHex(hex: string): Promise<FlightState | null> {
+    if (!hex || hex.startsWith('SIM')) return null; // Skip simulated local contacts
     try {
       const response = await fetchWithRetry(`/api/adsb/v2/hex/${hex}`);
       const data = await response.json();

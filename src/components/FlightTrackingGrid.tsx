@@ -16,15 +16,15 @@ interface FlightTrackingGridProps {
 const MAX_TRACKED = 20;
 
 const squawkLookup: Record<string, { label: string; color: string }> = {
-  '7500': { label: 'HIJACK',     color: '#ff2020' },
+  '7500': { label: 'HIJACK', color: '#ff2020' },
   '7600': { label: 'RADIO FAIL', color: '#ff8800' },
-  '7700': { label: 'EMERGENCY',  color: '#ff2020' },
-  '2000': { label: 'IFR OCNC',  color: '#dc143c' },
-  '1200': { label: 'VFR',        color: '#aa2030' },
-  '0000': { label: 'STANDBY',    color: '#882030' },
-  '7777': { label: 'MILITARY',   color: '#aa00ff' },
-  '2200': { label: 'NO ATC',     color: '#cc3020' },
-  '1000': { label: 'MODE C',     color: '#993030' },
+  '7700': { label: 'EMERGENCY', color: '#ff2020' },
+  '2000': { label: 'IFR OCNC', color: '#dc143c' },
+  '1200': { label: 'VFR', color: '#aa2030' },
+  '0000': { label: 'STANDBY', color: '#882030' },
+  '7777': { label: 'MILITARY', color: '#aa00ff' },
+  '2200': { label: 'NO ATC', color: '#cc3020' },
+  '1000': { label: 'MODE C', color: '#993030' },
 };
 
 // --- Mini Instruments ---
@@ -39,8 +39,8 @@ const MiniArcGauge = ({
   const sweepDeg = pct * totalDeg;
   const toRad = (d: number) => (d * Math.PI) / 180;
   const aStart = { x: cx + r * Math.cos(toRad(startA)), y: cy + r * Math.sin(toRad(startA)) };
-  const aEnd   = { x: cx + r * Math.cos(toRad(startA + sweepDeg)), y: cy + r * Math.sin(toRad(startA + sweepDeg)) };
-  const bgEnd  = { x: cx + r * Math.cos(toRad(endA)), y: cy + r * Math.sin(toRad(endA)) };
+  const aEnd = { x: cx + r * Math.cos(toRad(startA + sweepDeg)), y: cy + r * Math.sin(toRad(startA + sweepDeg)) };
+  const bgEnd = { x: cx + r * Math.cos(toRad(endA)), y: cy + r * Math.sin(toRad(endA)) };
   const bgLarge = totalDeg > 180 ? 1 : 0;
   const largeArc = sweepDeg > 180 ? 1 : 0;
 
@@ -194,7 +194,7 @@ const FlightTrackingGrid: React.FC<FlightTrackingGridProps> = ({ trackedFlights,
         position: 'fixed',
         top: '80px',
         right: '16px',
-        width: '400px',
+        width: '389px',
         maxHeight: 'calc(100vh - 160px)',
         overflowY: 'auto',
         overflowX: 'hidden',
@@ -208,19 +208,19 @@ const FlightTrackingGrid: React.FC<FlightTrackingGridProps> = ({ trackedFlights,
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          paddingBottom: '6px',
-          marginBottom: '6px',
+          paddingBottom: '8px',
+          marginBottom: '8px',
           borderBottom: '1px solid rgba(139,10,20,0.4)',
         }}>
           <div style={{
             fontSize: '0.45rem', fontWeight: 900, letterSpacing: '0.2em',
-            color: 'rgba(220,80,80,0.7)', textTransform: 'uppercase',
+            color: 'var(--rose-red)', textTransform: 'uppercase',
             fontFamily: 'monospace'
           }}>
             ◈ TACTICAL TRACK
           </div>
           <div style={{
-            fontSize: '0.42rem', color: 'rgba(180,40,50,0.5)',
+            fontSize: '0.42rem', color: 'rgba(207,20,43,0.5)',
             letterSpacing: '0.12em', fontFamily: 'monospace'
           }}>
             {trackedFlights.length} / {MAX_TRACKED}
@@ -230,8 +230,8 @@ const FlightTrackingGrid: React.FC<FlightTrackingGridProps> = ({ trackedFlights,
         {/* 2-column grid — only renders actual tracked flights, no blank slots */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(2, 194px)',
-          gap: '6px',
+          gridTemplateColumns: 'repeat(2, 192px)',
+          gap: '5px',
         }}>
           {trackedFlights.map((flight, i) => {
             const squawk = flight.squawk ? (squawkLookup[flight.squawk] ?? null) : null;

@@ -15,12 +15,13 @@ const Clock: React.FC = () => {
       justifyContent: 'space-between',
       width: '100%',
       marginTop: '4px',
+      paddingBottom: '8px',
+      borderBottom: '1px solid rgba(207, 20, 43, 0.3)',
       whiteSpace: 'nowrap'
     }}>
-      <div className="header-text" style={{ fontSize: '1.2rem', color: 'var(--rose-red)', letterSpacing: '0.05em', paddingRight: '15px' }}>
+      <div className="header-text" style={{ fontSize: '1.2rem', color: 'var(--rose-red)', letterSpacing: '0.05em' }}>
         {currentTime.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase()}
       </div>
-      <div style={{ width: '1px', height: '1.5rem', background: 'var(--rose-red)', opacity: 0.5 }}></div>
       <div className="header-text" style={{ fontSize: '1.25rem', color: 'var(--rose-red)', letterSpacing: '0.05em', fontWeight: 900 }}>
         {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
       </div>
