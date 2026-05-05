@@ -35,6 +35,9 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
   const trafficModeRef = useRef(trafficMode);
   useEffect(() => { trafficModeRef.current = trafficMode; }, [trafficMode]);
 
+  const isBatchingRef = useRef(false);
+  const batchRequestRef = useRef<number>(0);
+
   const globeRadius = 100;
 
   // Converts Geocoordinates to 3D Cartesian coordinates
@@ -264,31 +267,38 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
     const TRANSITION_DURATION = 30000;
 
     const fetchLiveFlights = async () => {
-      try {
-        // Reduced radius to 12000 NM to be gentler on the proxy/API
-        const rawFlights = await ADSBTelemetryService.getGlobalFlights();
+      if (isBatchingRef.current) return;
+      isBatchingRef.current = true;
 
+      try {
+        const rawFlights = await ADSBTelemetryService.getGlobalFlights();
         const apiSuccess = !!(rawFlights && rawFlights.length > 0);
 
         if (!apiSuccess) {
-          console.warn("[HUD] Telemetry Feed Interrupted (502/Timeout). Preserving last known contacts.");
+          console.warn("[HUD] Telemetry Feed Interrupted. Preserving last known contacts.");
         }
 
-        // Filter: Keep it simple to avoid string/type mismatches
         let flights = (rawFlights || []).filter((f: any) => {
           const alt = f.alt_geom || f.alt_baro || 0;
           return alt !== 'ground' && alt !== 0;
         });
 
-        // Global Uniform Distribution: Render up to 5000 flights to ensure dense regions like UK/EU are populated
+        // Sticky Quota Management: If > 5000, prioritize existing, tracked, and emergency planes
         if (flights.length > 5000) {
-          flights = flights.sort(() => Math.random() - 0.5).slice(0, 5000);
+          const trackedHexes = new Set(trackedFlightsRef.current.map(f => f.hex));
+          const critical = flights.filter((f: any) => 
+            EMERGENCY_SQUAWKS[String(f.squawk)] || trackedHexes.has(f.hex)
+          );
+          const existing = flights.filter((f: any) => activePlanes.has(f.hex) && !EMERGENCY_SQUAWKS[String(f.squawk)] && !trackedHexes.has(f.hex));
+          const newOnes = flights.filter((f: any) => !activePlanes.has(f.hex) && !EMERGENCY_SQUAWKS[String(f.squawk)] && !trackedHexes.has(f.hex));
+          
+          flights = [...critical, ...existing, ...newOnes].slice(0, 5000);
         }
 
+        // Initialize simulation if feed is empty and we have no data
         if (!apiSuccess && activePlanes.size === 0) {
-          console.log("[HUD] Initializing Global Tactical Simulation (200 contacts)");
           flights = Array.from({ length: 200 }).map((_, i) => ({
-            hex: 'SIM' + i, // Persistent ID to prevent teleportation
+            hex: 'SIM' + i,
             flight: 'STEL' + i,
             lat: (Math.random() * 180) - 90,
             lon: (Math.random() * 360) - 180,
@@ -296,114 +306,116 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
             alt_baro: 10000 + Math.random() * 30000,
             track: Math.random() * 360,
             gs: 450,
-            t: ['A388', 'GLF6', 'EC35', 'A320'][i % 4] // Diversify types for filter testing
+            t: ['A388', 'GLF6', 'EC35', 'A320'][i % 4]
           }));
         }
 
         if (flights && flights.length > 0) {
           const currentHexes = new Set();
           const now = Date.now();
-
-          // --- BALANCED BATCHED PROCESSING ---
           let index = 0;
-          const BATCH_SIZE = 150; // Optimized for performance/responsiveness
+          const BATCH_SIZE = 50;
 
           const processBatch = () => {
-            const end = Math.min(index + BATCH_SIZE, flights.length);
-            for (; index < end; index++) {
-              const flight = flights[index];
-              if (!flight.hex || flight.lat === undefined || flight.lon === undefined) continue;
-              currentHexes.add(flight.hex);
+            try {
+              const end = Math.min(index + BATCH_SIZE, flights.length);
+              for (; index < end; index++) {
+                const flight = flights[index];
+                if (!flight.hex || flight.lat === undefined || flight.lon === undefined) continue;
+                currentHexes.add(flight.hex);
 
-              const alt = Number(flight.alt_geom || flight.alt_baro || 0);
-              const pos = latLonToVector3(flight.lat, flight.lon, globeRadius, alt);
-              const currentTrack = Number(flight.track || 0);
-              const gs = Number(flight.gs || 450);
+                const alt = Number(flight.alt_geom || flight.alt_baro || 0);
+                const pos = latLonToVector3(flight.lat, flight.lon, globeRadius, alt);
+                const currentTrack = Number(flight.track || 0);
+                const gs = Number(flight.gs || 450);
 
-              const trackRad = currentTrack * (Math.PI / 180);
-              const dist = (gs * 60) / 3600;
-              const dLat = (Math.cos(trackRad) * dist) / 60;
-              const dLon = (Math.sin(trackRad) * dist) / (60 * Math.cos(flight.lat * Math.PI / 180));
-              const projectedTarget = latLonToVector3(flight.lat + dLat, flight.lon + dLon, globeRadius, alt);
+                const trackRad = currentTrack * (Math.PI / 180);
+                const dist = (gs * 60) / 3600;
+                const dLat = (Math.cos(trackRad) * dist) / 60;
+                const dLon = (Math.sin(trackRad) * dist) / (60 * Math.cos(flight.lat * Math.PI / 180));
+                const projectedTarget = latLonToVector3(flight.lat + dLat, flight.lon + dLon, globeRadius, alt);
 
-              const planeData = activePlanes.get(flight.hex);
-              if (planeData) {
-                planeData.startPos.copy(planeData.mesh.position);
-                planeData.targetPos.copy(projectedTarget);
-                planeData.startTime = now;
-                planeData.startTrack = Number(planeData.mesh.userData.currentTrack) || currentTrack;
-                planeData.targetTrack = currentTrack;
-                planeData.flightData = flight;
-                planeData.staleCount = 0;
-              } else {
-                const mesh = createPlaneMesh(flight.hex, flight.t);
-                mesh.position.copy(pos);
-                mesh.visible = false;
-                flightsGroup.add(mesh);
+                const planeData = activePlanes.get(flight.hex);
+                if (planeData) {
+                  planeData.startPos.copy(planeData.mesh.position);
+                  planeData.targetPos.copy(projectedTarget);
+                  planeData.startTime = now;
+                  planeData.startTrack = Number(planeData.mesh.userData.currentTrack) || currentTrack;
+                  planeData.targetTrack = currentTrack;
+                  planeData.flightData = flight;
+                  planeData.staleCount = 0;
+                } else {
+                  const mesh = createPlaneMesh(flight.hex, flight.t);
+                  mesh.position.copy(pos);
+                  mesh.visible = false;
+                  flightsGroup.add(mesh);
 
-                activePlanes.set(flight.hex, {
-                  mesh,
-                  startPos: pos.clone(),
-                  targetPos: projectedTarget,
-                  startTime: now,
-                  startTrack: currentTrack,
-                  targetTrack: currentTrack,
-                  hasTwoPoints: true,
-                  flightData: flight,
-                  staleCount: 0
-                });
+                  activePlanes.set(flight.hex, {
+                    mesh,
+                    startPos: pos.clone(),
+                    targetPos: projectedTarget,
+                    startTime: now,
+                    startTrack: currentTrack,
+                    targetTrack: currentTrack,
+                    flightData: flight,
+                    staleCount: 0,
+                    hasTwoPoints: true
+                  });
+                }
               }
-            }
 
-            if (index < flights.length) {
-              requestAnimationFrame(processBatch);
-            } else {
-              // Final cleanup and Emergency Scan after batch completes
-              const newEmergencyHexes = new Set<string>();
-              const newEmergencyFlights: any[] = [];
+              if (index < flights.length) {
+                batchRequestRef.current = requestAnimationFrame(processBatch);
+              } else {
+                isBatchingRef.current = false;
+                
+                // Cleanup stale contacts and scan for emergencies
+                const newEmergencyHexes = new Set<string>();
+                const newEmergencyFlights: any[] = [];
 
-              for (const [hex, data] of activePlanes.entries()) {
-                // 1. Cleanup stale contacts
-                if (apiSuccess && !currentHexes.has(hex) && !hex.startsWith('SIM')) {
-                  data.staleCount = (data.staleCount || 0) + 1;
-                  if (data.staleCount > 3) {
-                    flightsGroup.remove(data.mesh);
-                    activePlanes.delete(hex);
-                    rotorMeshes.delete(hex);
-                    continue;
+                for (const [hex, data] of activePlanes.entries()) {
+                  if (apiSuccess && !currentHexes.has(hex) && !hex.startsWith('SIM')) {
+                    data.staleCount = (data.staleCount || 0) + 1;
+                    if (data.staleCount > 3) {
+                      flightsGroup.remove(data.mesh);
+                      activePlanes.delete(hex);
+                      rotorMeshes.delete(hex);
+                      continue;
+                    }
+                  }
+
+                  const sq = String(data.flightData?.squawk ?? '');
+                  if (EMERGENCY_SQUAWKS[sq]) {
+                    newEmergencyFlights.push(data.flightData);
+                    newEmergencyHexes.add(hex);
                   }
                 }
 
-                // 2. Emergency Detection
-                const sq = String(data.flightData?.squawk ?? '');
-                if (EMERGENCY_SQUAWKS[sq]) {
-                  newEmergencyFlights.push(data.flightData);
-                  newEmergencyHexes.add(hex);
-                }
+                emergencyHexesRef.current = newEmergencyHexes;
+                setEmergencyFlights(newEmergencyFlights);
               }
-
-              emergencyHexesRef.current = newEmergencyHexes;
-              setEmergencyFlights(newEmergencyFlights);
+            } catch (err) {
+              console.error("[HUD] Batching error:", err);
+              isBatchingRef.current = false;
             }
           };
-
           processBatch();
+        } else {
+          isBatchingRef.current = false;
         }
       } catch (error) {
-        console.error("ADSB telemetry sync critical failure:", error);
+        console.error("[HUD] Telemetry Sync Failure:", error);
+        isBatchingRef.current = false;
       }
     };
 
     fetchLiveFlights();
     const interval = setInterval(fetchLiveFlights, TRANSITION_DURATION);
 
-    // High-frequency poll: Rotating single-aircraft queue
-    // Spreads the load to exactly 1 request per second, which is much safer for residential proxies
     const trackedInterval = setInterval(async () => {
       const hexes = trackedFlightsRef.current.map(f => f.hex).filter(h => !h.startsWith('SIM'));
       if (hexes.length === 0) return;
 
-      // Cycle through the tracked flights one at a time
       if (pollIndexRef.current >= hexes.length) pollIndexRef.current = 0;
       const hex = hexes[pollIndexRef.current];
       pollIndexRef.current++;
@@ -413,7 +425,6 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
         if (fresh && activePlanes.has(hex)) {
           activePlanes.get(hex).flightData = fresh;
 
-          // Sync state for the instruments
           const synced = trackedFlightsRef.current.map(f => {
             const live = activePlanes.get(f.hex);
             return live ? live.flightData : f;
@@ -422,25 +433,24 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
           setTrackedFlights([...synced]);
         }
       } catch (e) {
-        // Silent fail for single aircraft drops
       }
-    }, 1000); // Constant 1 request per second frequency
+    }, 1000);
 
-    // Dynamic Animation Loop with Plane Interpolation
-    let lastTrackedSync = 0;
+    // Pre-allocated scratchpad for high-frequency loops
+    const scrPos = new THREE.Vector3();
+    const scrPDir = new THREE.Vector3();
+    const scrVec = new THREE.Vector3();
     const camPosDir = new THREE.Vector3();
     const planeDir = new THREE.Vector3();
 
     const animate = () => {
       try {
         requestAnimationFrame(animate);
-        rotationGroup.rotation.y += 0.0001; // Gentle earth rotation
+        rotationGroup.rotation.y += 0.0001;
 
         const now = Date.now();
-
-        // Dynamic Horizon Culling variables
         camPosDir.copy(camera.position).normalize();
-
+        const trackedSet = new Set(trackedFlightsRef.current.map(f => f.hex));
         const r_earth = globeRadius;
         const r_cam = camera.position.length();
         const horizonCos = r_earth / r_cam;
@@ -450,13 +460,13 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
           try {
             if (!data.hasTwoPoints || !data.targetPos) return;
 
-            // 1. Fast Visibility Culling (Check before any math)
             planeDir.copy(data.mesh.position).normalize();
             let finalVisible = planeDir.dot(camPosDir) >= cullThreshold;
 
             if (finalVisible) {
-              const isEmergency = emergencyHexesRef.current.has(data.flightData.hex);
-              const isTracked = trackedFlightsRef.current.some(f => f.hex === data.flightData.hex);
+              const hex = data.flightData.hex;
+              const isEmergency = emergencyHexesRef.current.has(hex);
+              const isTracked = trackedSet.has(hex);
               const type = data.mesh.userData.type;
               const mode = trafficModeRef.current;
 
@@ -467,7 +477,6 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
               else if (mode === 'HELI') finalVisible = isEmergency || type === 'heli';
 
               if (finalVisible) {
-                // 2. Heavy Math only for visible aircraft
                 data.mesh.position.lerp(data.targetPos, 0.015);
                 const currentRad = data.mesh.position.length();
                 const targetRad = data.targetPos.length();
@@ -495,14 +504,8 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
               }
             }
             data.mesh.visible = finalVisible;
-
-            // Animate rotors if applicable
-            const rotor = rotorMeshes.get(data.flightData.hex);
-            if (rotor && finalVisible) {
-              rotor.rotation.y += 0.5; // High-speed rotation
-            }
           } catch (e) {
-            // Silently skip individual plane errors to keep the scene running
+            // Skip individual errors
           }
         });
 
@@ -520,38 +523,21 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
             trackedPositionsRef.current.delete(flight.hex);
             continue;
           }
-          const planeWorldPos = new THREE.Vector3();
-          planeData.mesh.getWorldPosition(planeWorldPos);
-          const planeDir = planeWorldPos.clone().normalize();
-          const vector = planeWorldPos.clone();
-          vector.project(camera);
-          const x = (vector.x * 0.5 + 0.5) * window.innerWidth;
-          const y = (vector.y * -0.5 + 0.5) * window.innerHeight;
-          const visible = vector.z <= 1 && planeDir.dot(camPosDir) >= cullThreshold;
+          planeData.mesh.getWorldPosition(scrPos);
+          scrPDir.copy(scrPos).normalize();
+          scrVec.copy(scrPos);
+          scrVec.project(camera);
+          
+          const x = (scrVec.x * 0.5 + 0.5) * window.innerWidth;
+          const y = (scrVec.y * -0.5 + 0.5) * window.innerHeight;
+          const visible = scrVec.z <= 1 && scrPDir.dot(camPosDir) >= cullThreshold;
           trackedPositionsRef.current.set(flight.hex, { x, y, visible });
-        }
-
-        // Throttle: re-sync tracked flight telemetry from activePlanes every 1 second
-        if (now - lastTrackedSync > 1000 && trackedFlightsRef.current.length > 0) {
-          lastTrackedSync = now;
-          let changed = false;
-          const synced = trackedFlightsRef.current.map(f => {
-            const live = activePlanes.get(f.hex);
-            if (live && live.flightData !== f) { changed = true; return live.flightData as typeof f; }
-            return f;
-          });
-          if (changed) {
-            trackedFlightsRef.current = synced;
-            setTrackedFlights([...synced]);
-          }
         }
 
         controls.update();
         renderer.render(scene, camera);
-        requestRef.current = requestAnimationFrame(animate);
       } catch (e) {
         console.error("[HUD] Render loop failure:", e);
-        requestRef.current = requestAnimationFrame(animate);
       }
     };
     requestRef.current = requestAnimationFrame(animate);
@@ -564,29 +550,24 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
       mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
       let bestMatch = null;
-      // Generous hit radius (~30px on a 1080p screen)
       let minDistance = 0.04;
 
-      const camPosDir = camera.position.clone().normalize();
+      // Reuse vectors to prevent allocation hiccup
+      const curCamPos = camera.position.clone().normalize(); 
       const r_earth = globeRadius;
       const r_cam = camera.position.length();
       const horizonCos = r_earth / r_cam;
-      const cullThreshold = horizonCos - 0.15;
+      const clickCull = horizonCos - 0.15;
 
-      // Manual screen-space hit detection (much more reliable than clicking tiny 3D polygons)
       if (flightsGroupRef.current && flightsGroupRef.current.visible) {
         for (const [, data] of activePlanes.entries()) {
-          const planeWorldPos = new THREE.Vector3();
-          data.mesh.getWorldPosition(planeWorldPos);
-          const planeDir = planeWorldPos.clone().normalize();
+          data.mesh.getWorldPosition(scrPos);
+          scrPDir.copy(scrPos).normalize();
 
-          // Skip planes on the back of the globe
-          if (planeDir.dot(camPosDir) < cullThreshold) continue;
+          if (scrPDir.dot(curCamPos) < clickCull) continue;
 
-          const vector = planeWorldPos.clone();
-          vector.project(camera);
-
-          const dist = Math.sqrt(Math.pow(vector.x - mouse.x, 2) + Math.pow(vector.y - mouse.y, 2));
+          scrVec.copy(scrPos).project(camera);
+          const dist = Math.sqrt(Math.pow(scrVec.x - mouse.x, 2) + Math.pow(scrVec.y - mouse.y, 2));
           if (dist < minDistance) {
             minDistance = dist;
             bestMatch = data.flightData;
@@ -595,7 +576,6 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
       }
 
       if (bestMatch) {
-        // Toggle: if already tracked, remove it; otherwise add (max 4)
         const hex = bestMatch.hex;
         const current = trackedFlightsRef.current;
         const alreadyTracked = current.findIndex(f => f.hex === hex);
@@ -606,7 +586,7 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
         } else if (current.length < 20) {
           next = [...current, bestMatch];
         } else {
-          next = current; // 20 plane limit reached
+          next = current; 
         }
         trackedFlightsRef.current = next;
         setTrackedFlights([...next]);
@@ -633,6 +613,8 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
 
     return () => {
       cancelAnimationFrame(requestRef.current);
+      cancelAnimationFrame(batchRequestRef.current);
+      isBatchingRef.current = false;
       renderer.domElement.removeEventListener('dblclick', onDblClick);
       window.removeEventListener('click', onMouseClick);
       window.removeEventListener('resize', handleResize);

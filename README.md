@@ -52,13 +52,13 @@ graph TD
     end
 ```
 
-### Key Features
+### Key Tactical Features
 *   Movement Interpolation: Decouples 3D motion from API polling latency using a continuous physics model.
-*   Batched Telemetry Loading: Efficient processing (150 units per frame) that populates large aircraft fleets without blocking the main browser thread.
+*   Sticky Quota Management: Handles airspaces with more than 5,000 active aircraft by prioritising existing contacts. This prevents the mass deletion and recreation of meshes, ensuring rendering stability.
+*   Critical Priority Ingestion: Emergency aircraft (Squawk 7500, 7600, 7700) and user-tracked units bypass performance culling, ensuring 100% situational awareness for high-risk contacts.
 *   Atmospheric Overlays: Integrated gradient fades to ensure HUD data remains readable against the globe background.
-*   Memory Management: Optimized Three.js loop utilizing scratchpad memory to handle thousands of concurrent contacts with minimal overhead.
 
-## Data Model: Situational Awareness
+## Data Model and Telemetry Handling
 
 The frontend consumes a telemetry stream, transforming raw JSON packets into a standard FlightState model.
 
@@ -73,30 +73,6 @@ The frontend consumes a telemetry stream, transforming raw JSON packets into a s
 | gs | number | Ground speed in knots. |
 | squawk | string | 4-digit transponder code (7700 = Emergency). |
 
-## Data Cleansing and Normalisation
-
-Nyx employs a parsing pipeline to transform unstructured text from The Aviation Herald (AVHerald) into a structured data model.
-
-### 1. Headline Parsing
-Raw headlines are processed to extract core entities:
-*   Pattern Matching: Uses ICAO-compliant strings to identify aircraft types.
-*   Entity Mapping: Segments the string into Airline, Aircraft, Location, and Date.
-*   Normalization: Standardises airline names and removes noise characters to ensure database consistency.
-
-### 2. Information Extraction
-The content of an article is separated into three fields:
-*   Narrative: The primary chronological account of the incident.
-*   METAR Data: Extraction of meteorological data for environmental analysis.
-*   Timestamps: Capture of report and update times to track incident development.
-
-### 3. Model Fitting
-Data is validated against the schema before being committed to the database:
-*   Unique ID: Every incident is indexed by its original Article ID to prevent duplicates.
-*   Type Conversion: Numeric values are sanitised and cast to appropriate formats for processing.
-*   Relationship Linking: The reconciliation engine ensures incidents are linked to existing aircraft, airline, and airport records.
-
-## Core Logic and Telemetry Handling
-
 ### 1. Motion Smoothing
 Nyx uses a continuous interpolation model to eliminate snapping. Instead of moving a plane instantly to new coordinates, the system calculates a 60-second projection:
 *   Projection: Target Position = Current Position + (Ground Speed * 60s).
@@ -110,13 +86,43 @@ Altitude is treated as a radial offset from the globe centre:
 
 ### 3. Contact Persistence
 Data can be intermittent due to signal issues or proxy shifts:
-*   Grace Period: Aircraft are only removed after 3 consecutive failed updates (90 seconds).
+*   Grace Period: Aircraft are only removed after 3 consecutive failed updates.
 *   Stale Tracking: Contacts remain at their last known projected vector until the grace period expires or new data is received.
 
-### 4. Mathematical Optimisation
-To handle large fleets (5,000+ aircraft) without browser freezing:
-*   Scratchpad Vectors: 3D calculations use a pre-allocated pool of objects to avoid constant memory allocation.
-*   Early Exit Culling: Visibility is calculated before expensive matrix math, allowing the engine to skip processing for approximately 50% of the fleet in every frame.
+## Data Normalisation and Cleansing
+
+Nyx employs a strict parsing pipeline to transform unstructured text data, specifically from The Aviation Herald (AVHerald), into the system's internal data model.
+
+### 1. Headline Deconstruction
+Raw headlines are processed to extract core entities through a multi-stage parser:
+*   Pattern Matching: Identifies aircraft types (e.g. A320, B738) and registration formats (e.g. G-XXXX).
+*   Entity Resolution: Maps strings to specific airlines and airports using ICAO and IATA databases.
+*   UK Grammar Compliance: All generated summaries and parsed descriptions are normalised to UK English spelling (e.g. 'standardised', 'normalisation') to maintain consistent documentation.
+
+### 2. Information Extraction Logic
+The content of an incident report is separated into three tactical fields:
+*   Narrative: A cleaned, chronological account of the incident, stripped of HTML noise and irrelevant boilerplate text.
+*   METAR Extraction: Meteorological data is extracted from the text and hydrated into the weather layer.
+*   Timeline Mapping: Captures report times and update cycles to track the lifecycle of the incident.
+
+### 3. Model Fitting and Validation
+Data is validated against the schema before being committed to the knowledge graph:
+*   Deduplication: Every incident is indexed by a unique source ID to prevent redundant nodes.
+*   Type Sanitisation: Numeric values (altitude, speed, coordinates) are validated and cast to appropriate types.
+*   Graph Linking: The reconciliation engine ensures that each new incident is linked to the correct aircraft, operator, and location nodes within the Neo4j environment.
+
+## Performance and Optimisation
+
+To maintain a consistent 60FPS situational awareness HUD with over 5,000 concurrent contacts:
+
+### 1. Zero-Allocation Rendering
+High-frequency loops (animation and user interaction) utilise a pre-allocated pool of scratchpad vectors. This prevents thousands of memory allocations per second, eliminating Garbage Collection pauses that cause UI freezing.
+
+### 2. Early Exit Culling
+Visibility is calculated before expensive matrix math. The engine skips processing for aircraft located on the far side of the horizon, allowing the system to focus resources on visible contacts.
+
+### 3. Thread-Safe Batching
+Telemetry updates are processed in micro-batches (50 units per frame). A semaphore-based lock prevents overlapping hydration cycles, ensuring the browser remains responsive during massive fleet updates.
 
 ## Governance and Safety
 
@@ -134,7 +140,6 @@ When data conflicts occur, the system promotes the highest-ranking source's data
 
 ### Prerequisites
 *   Node.js (v20+)
-*   WSL2 (if on Windows) or Docker
 *   Neo4j (v5+)
 
 ### Setup Instructions
