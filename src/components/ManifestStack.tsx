@@ -85,12 +85,47 @@ const ManifestStack: React.FC<ManifestStackProps> = ({ incidents, selectedId, se
           top: 0,
           left: 0,
           zIndex: isFocused ? 1002 : 1,
-          ...(isFocused ? { minHeight: '600px' } : {}),
+          ...(isFocused ? { minHeight: '600px', background: 'rgba(0, 0, 0, 0.6)', backdropFilter: 'blur(10px)', borderRadius: '12px', overflow: 'hidden' } : {}),
           transition: 'none',
           display: 'flex',
           flexDirection: 'column'
         }}
       >
+        {isFocused && (
+            <button 
+              onClick={(e) => { e.stopPropagation(); setSelectedId(null); }}
+              style={{
+                position: 'absolute',
+                top: '16px',
+                right: '16px',
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                background: 'rgba(207, 20, 43, 0.15)',
+                border: '2px solid var(--rose-red)',
+                color: 'var(--rose-red)',
+                fontSize: '1.2rem',
+                fontWeight: 900,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 1005,
+                transition: 'all 0.2s ease'
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.background = 'var(--rose-red)';
+                e.currentTarget.style.color = 'white';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.background = 'rgba(207, 20, 43, 0.15)';
+                e.currentTarget.style.color = 'var(--rose-red)';
+              }}
+              title="CLOSE MANIFEST"
+            >
+              ✕
+            </button>
+        )}
         {/* Top Highlight Badge (Topper) */}
         <div className="reflective-shine">
           <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">

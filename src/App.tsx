@@ -116,7 +116,9 @@ const App: React.FC = () => {
 
   const extractAviationIdentifiers = (text: string): { registration: string | null; callsign: string | null } => {
     // Robust regex for international aircraft registrations (Tail Numbers)
-    const regRegex = /\b([A-Z]{1,2}-[A-Z0-9]{3,5}|N[0-9A-Z]{1,5})\b/gi;
+    // International: G-ABCD, D-AIBI (Prefix-Suffix with hyphen)
+    // US: N12345, N123AB (N followed by 1-5 chars, starting with a digit)
+    const regRegex = /\b([A-Z]{1,2}-[A-Z0-9]{3,5}|N[1-9][0-9A-Z]{0,4})\b/gi;
     // Callsign regex: Airline prefix (2-3 chars) + Flight number (1-4 digits)
     const callsignRegex = /\b([A-Z]{2,3}\d{1,4}[A-Z]?)\b/gi;
     

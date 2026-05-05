@@ -291,12 +291,16 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ selectedIncident, onTelemetryMa
           console.warn("[HUD] Telemetry Feed Interrupted. Preserving last known contacts.");
         }
 
+        // 1. Initial sanitisation and strict deduplication by hex
+        const seenHexes = new Set<string>();
         let flights = (rawFlights || []).filter((f: any) => {
+          if (!f.hex || seenHexes.has(f.hex)) return false;
+          seenHexes.add(f.hex);
           const alt = f.alt_geom || f.alt_baro || 0;
           return alt !== 'ground' && alt !== 0;
         });
 
-        // Sticky Quota Management: If > 5000, prioritize existing, tracked, and emergency planes
+        // 2. Sticky Quota Management: If > 5000, prioritize mission-critical contacts
         if (flights.length > 5000) {
           const trackedHexes = new Set(trackedFlightsRef.current.map(f => f.hex));
           const critical = flights.filter((f: any) => 
@@ -488,6 +492,16 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ selectedIncident, onTelemetryMa
 
               if (mode === 'OFF') finalVisible = isEmergency;
               else if (mode === 'SELECTED') finalVisible = isEmergency || isTracked;
+              else if (mode === 'ALL' && !isEmergency && !isTracked) {
+                // Thin out 'ALL' mode to prevent visual saturation (approx 40% density)
+                // Use a deterministic hash from the hex string to prevent flickering
+                let hash = 0;
+                for (let i = 0; i < hex.length; i++) {
+                  hash = ((hash << 5) - hash) + hex.charCodeAt(i);
+                  hash |= 0;
+                }
+                if (Math.abs(hash) % 10 > 3) finalVisible = false;
+              }
               else if (mode === 'HEAVY') finalVisible = isEmergency || type === 'widebody';
               else if (mode === 'PRIVATE') finalVisible = isEmergency || type === 'privateJet';
               else if (mode === 'HELI') finalVisible = isEmergency || type === 'heli';
@@ -660,16 +674,20 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ selectedIncident, onTelemetryMa
     const reg = selectedIncident.registration?.toUpperCase();
     const callsign = selectedIncident.callsign?.toUpperCase();
     const flightId = selectedIncident.source_id?.toUpperCase();
+    const opCodes = (selectedIncident.operator_codes || []).map(c => c.toUpperCase());
+    const airframe = (selectedIncident.aircraft_type || []).map(t => t.toUpperCase());
     
     // Search activePlanesRef for a match
     let matchedFlight: FlightState | null = null;
+    let fuzzyMatches: FlightState[] = [];
     
     for (const [, data] of activePlanesRef.current.entries()) {
       const live = data.flightData as FlightState;
       const liveReg = (live.r || '').toUpperCase();
       const liveFlight = (live.flight || '').toUpperCase();
+      const liveType = (live.t || '').toUpperCase();
       
-      // Match on registration, callsign, or hex (if available)
+      // 1. Exact Match (High Confidence)
       if (
         (reg && liveReg === reg) || 
         (reg && liveFlight === reg) || 
@@ -680,19 +698,26 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ selectedIncident, onTelemetryMa
         matchedFlight = live;
         break;
       }
+
+      // 2. Fuzzy Match (Operator + Type)
+      if (opCodes.some(code => liveFlight.startsWith(code)) && airframe.some(type => liveType.includes(type))) {
+        fuzzyMatches.push(live);
+      }
     }
 
-    if (matchedFlight) {
+    const finalMatch = matchedFlight || (fuzzyMatches.length === 1 ? fuzzyMatches[0] : null);
+
+    if (finalMatch) {
       // Force track this flight
       const current = trackedFlightsRef.current;
-      if (!current.some(f => f.hex === matchedFlight!.hex)) {
-        const next = [...current, matchedFlight].slice(-20);
+      if (!current.some(f => f.hex === finalMatch.hex)) {
+        const next = [...current, finalMatch].slice(-20);
         trackedFlightsRef.current = next;
         setTrackedFlights([...next]);
       }
 
       // Set camera target for smooth follow
-      const pos = latLonToVector3(matchedFlight.lat, matchedFlight.lon, globeRadius + 60);
+      const pos = latLonToVector3(finalMatch.lat, finalMatch.lon, globeRadius + 60);
       targetCameraPosRef.current = pos;
 
       onTelemetryMatch?.(true);
