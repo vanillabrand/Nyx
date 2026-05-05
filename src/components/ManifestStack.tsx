@@ -26,6 +26,7 @@ export interface ManifestCardData {
   location?: string;
   lastUpdated?: string;
   registration?: string | null;
+  callsign?: string | null;
 }
 
 interface ManifestStackProps {
@@ -128,6 +129,7 @@ const ManifestStack: React.FC<ManifestStackProps> = ({ incidents, selectedId, se
             </div>
             <div style={{ textAlign: 'right' }}>
               <div style={{ fontSize: '0.55rem', opacity: 0.4, textTransform: 'uppercase' }}>{card.lastUpdated || 'UPDATED'}</div>
+              <div style={{ fontSize: '0.55rem', opacity: 0.4, textTransform: 'uppercase' }}>{card.lastUpdated || 'TIMESTAMP'}</div>
               <div style={{ fontSize: '0.7rem', fontWeight: 900, color: 'var(--rose-red)' }}>{card.date}</div>
             </div>
           </div>
@@ -191,7 +193,7 @@ const ManifestStack: React.FC<ManifestStackProps> = ({ incidents, selectedId, se
                 card.flight_paths.map((path, pIdx) => (
                   <div key={pIdx}>
                     <div style={{ fontSize: '0.45rem', opacity: 0.4, marginBottom: '2px', display: 'flex', gap: '8px' }}>
-                      <span style={{ letterSpacing: '0.1em' }}>MISSION PATH {card.flight_paths!.length > 1 ? `#${pIdx + 1}` : ''}</span>
+                      <span style={{ letterSpacing: '0.1em' }}>FLIGHT_PATH {card.flight_paths!.length > 1 ? `#${pIdx + 1}` : ''}</span>
                       {card.flight_paths!.length > 1 && path.operator && (
                         <span style={{ color: 'rgba(255,255,255,0.6)' }}>[{path.operator}]</span>
                       )}
@@ -217,7 +219,7 @@ const ManifestStack: React.FC<ManifestStackProps> = ({ incidents, selectedId, se
                 ))
               ) : (
                 <div>
-                  <div style={{ fontSize: '0.45rem', opacity: 0.4, marginBottom: '2px', letterSpacing: '0.1em' }}>FLIGHT PATH DATA</div>
+                  <div style={{ fontSize: '0.45rem', opacity: 0.4, marginBottom: '2px', letterSpacing: '0.1em' }}>FLIGHT_PATH_DATA</div>
                   <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--rose-red)', opacity: 0.3 }}>UNKNOWN</div>
                 </div>
               )}
@@ -231,7 +233,7 @@ const ManifestStack: React.FC<ManifestStackProps> = ({ incidents, selectedId, se
           {isFocused && (
             <div style={{ marginTop: '32px', borderTop: '2px solid var(--rose-red)', paddingTop: '20px', textAlign: 'left' }}>
               <div style={{ marginBottom: '24px' }}>
-                <div style={{ fontSize: '0.6rem', opacity: 0.4, marginBottom: '8px' }}>INCIDENT NARRATIVE_HYDRATED</div>
+                <div style={{ fontSize: '0.6rem', opacity: 0.4, marginBottom: '8px' }}>INCIDENT_NARRATIVE</div>
                 <div style={{ 
                   fontSize: '0.95rem', 
                   lineHeight: 1.6, 
@@ -250,8 +252,8 @@ const ManifestStack: React.FC<ManifestStackProps> = ({ incidents, selectedId, se
               
               {card.metar && (
                 <div style={{ marginBottom: '24px' }}>
-                  <div style={{ fontSize: '0.6rem', opacity: 0.4, marginBottom: '8px' }}>METAR_TELEMETRY_DATA</div>
-                  <code style={{ fontSize: '0.85rem', color: 'var(--rose-red)', opacity: 0.8, background: 'rgba(0,0,0,0.3)', padding: '12px', display: 'block', borderRadius: '4px', lineHeight: 1.4 }}>
+                  <div style={{ fontSize: '0.6rem', opacity: 0.4, marginBottom: '8px' }}>METAR_DATA</div>
+                  <code style={{ fontSize: '0.85rem', color: 'var(--rose-red)', opacity: 0.8, background: 'rgba(3, 3, 4, 0.25)', backdropFilter: 'blur(2px)', pointerEvents: 'none', padding: '12px', display: 'block', borderRadius: '4px', lineHeight: 1.4 }}>
                     {card.metar}
                   </code>
                 </div>
@@ -278,12 +280,20 @@ const ManifestStack: React.FC<ManifestStackProps> = ({ incidents, selectedId, se
                     {hasTelemetryMatch ? 'LIVE TELEMETRY LINKED' : 'NO LIVE DATA MATCH'}
                   </div>
                 </div>
-                {card.registration && (
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '0.6rem', opacity: 0.4, marginBottom: '4px' }}>IDENTIFIER</div>
-                    <div style={{ fontSize: '1rem', fontWeight: 900, color: 'white' }}>{card.registration}</div>
-                  </div>
-                )}
+                <div style={{ display: 'flex', gap: '20px' }}>
+                  {card.callsign && (
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: '0.6rem', opacity: 0.4, marginBottom: '4px', letterSpacing: '0.1em' }}>CALLSIGN</div>
+                      <div style={{ fontSize: '1rem', fontWeight: 900, color: 'white' }}>{card.callsign}</div>
+                    </div>
+                  )}
+                  {card.registration && (
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: '0.6rem', opacity: 0.4, marginBottom: '4px', letterSpacing: '0.1em' }}>REGISTRATION</div>
+                      <div style={{ fontSize: '1rem', fontWeight: 900, color: 'white' }}>{card.registration}</div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}

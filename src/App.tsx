@@ -114,12 +114,19 @@ const App: React.FC = () => {
     return isNaN(d.getTime()) ? 0 : d.getTime();
   };
 
-  const extractRegistration = (text: string): string | null => {
+  const extractAviationIdentifiers = (text: string): { registration: string | null; callsign: string | null } => {
     // Robust regex for international aircraft registrations (Tail Numbers)
-    // Matches common patterns: N12345 (US), G-ABCD (UK), D-AIBI (Germany), etc.
     const regRegex = /\b([A-Z]{1,2}-[A-Z0-9]{3,5}|N[0-9A-Z]{1,5})\b/gi;
-    const matches = text.match(regRegex);
-    return matches ? matches[0].toUpperCase() : null;
+    // Callsign regex: Airline prefix (2-3 chars) + Flight number (1-4 digits)
+    const callsignRegex = /\b([A-Z]{2,3}\d{1,4}[A-Z]?)\b/gi;
+    
+    const regMatches = text.match(regRegex);
+    const callMatches = text.match(callsignRegex);
+    
+    return {
+      registration: regMatches ? regMatches[0].toUpperCase() : null,
+      callsign: callMatches ? callMatches[0].toUpperCase() : null
+    };
   };
 
   // Tactical Frontend Hydration – Two-Stage Pipeline
@@ -294,7 +301,7 @@ const App: React.FC = () => {
         const departure = combinedPath.length > 0 ? combinedPath[0] : (valOrUnk(inc.departure) || valOrUnk(inc.meta?.departure) || headInfo.airport || 'UNKNOWN');
         const destination = combinedPath.length > 1 ? combinedPath[combinedPath.length - 1] : (valOrUnk(inc.destination) || valOrUnk(inc.meta?.destination) || headInfo.airport || 'UNKNOWN');
 
-          const registration = extractRegistration((inc.headline || '') + ' ' + (inc.narrative || inc.meta?.narrative || ''));
+          const { registration, callsign } = extractAviationIdentifiers((inc.headline || '') + ' ' + (inc.narrative || inc.meta?.narrative || ''));
 
           const result: ManifestCardData = {
             ...inc,
@@ -304,6 +311,7 @@ const App: React.FC = () => {
             operator_codes: finalOperatorCodes,
             aircraft_type: finalAircraft,
             registration: registration,
+            callsign: callsign,
             date: String(inc.date || inc.occurred_at || 'RECENT').toUpperCase(),
             lastUpdated: String(inc.lastUpdated || inc.last_updated || inc.date || 'UNKNOWN').toUpperCase(),
             metar: String(inc.metar || inc.meta?.metar || '').toUpperCase(),

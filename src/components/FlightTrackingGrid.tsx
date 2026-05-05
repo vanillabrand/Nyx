@@ -199,7 +199,7 @@ const FlightTrackingGrid: React.FC<FlightTrackingGridProps> = ({ trackedFlights,
         overflowY: 'auto',
         overflowX: 'hidden',
         zIndex: 20,
-        pointerEvents: 'all',
+        pointerEvents: 'none',
         scrollbarWidth: 'thin',
         scrollbarColor: 'rgba(139,10,20,0.5) transparent',
       }}>
@@ -211,6 +211,7 @@ const FlightTrackingGrid: React.FC<FlightTrackingGridProps> = ({ trackedFlights,
           paddingBottom: '8px',
           marginBottom: '8px',
           borderBottom: '1px solid rgba(139,10,20,0.4)',
+          pointerEvents: 'all'
         }}>
           <div style={{
             fontSize: '0.45rem', fontWeight: 900, letterSpacing: '0.2em',
@@ -249,6 +250,7 @@ const FlightTrackingGrid: React.FC<FlightTrackingGridProps> = ({ trackedFlights,
                   border: 'none',
                   borderRadius: '4px',
                   overflow: 'hidden',
+                  pointerEvents: 'all'
                 }}
               >
                 <div style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: '7px 8px 6px' }}>

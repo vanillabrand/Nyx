@@ -658,6 +658,7 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ selectedIncident, onTelemetryMa
     }
 
     const reg = selectedIncident.registration?.toUpperCase();
+    const callsign = selectedIncident.callsign?.toUpperCase();
     const flightId = selectedIncident.source_id?.toUpperCase();
     
     // Search activePlanesRef for a match
@@ -668,8 +669,14 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ selectedIncident, onTelemetryMa
       const liveReg = (live.r || '').toUpperCase();
       const liveFlight = (live.flight || '').toUpperCase();
       
-      // Match on registration or callsign
-      if ((reg && liveReg === reg) || (reg && liveFlight === reg) || (flightId && liveFlight === flightId)) {
+      // Match on registration, callsign, or hex (if available)
+      if (
+        (reg && liveReg === reg) || 
+        (reg && liveFlight === reg) || 
+        (callsign && liveFlight === callsign) || 
+        (callsign && liveReg === callsign) ||
+        (flightId && liveFlight === flightId)
+      ) {
         matchedFlight = live;
         break;
       }
