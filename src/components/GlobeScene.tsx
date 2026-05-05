@@ -484,9 +484,9 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
                 orientPlane(data.mesh, data.mesh.position, newTrack);
                 data.mesh.userData.currentTrack = newTrack;
 
-                const targetMat = isEmergency ? materials.emergency : (materials[type] || materials.classic);
+                const targetMat = isEmergency ? materials.emergency : ((materials as any)[type] || materials.classic);
                 if (data.mesh.userData.lastMat !== targetMat) {
-                  data.mesh.traverse((child) => { if ((child as any).isMesh) (child as any).material = targetMat; });
+                  data.mesh.traverse((child: any) => { if (child.isMesh) child.material = targetMat; });
                   data.mesh.userData.lastMat = targetMat;
                 }
 
