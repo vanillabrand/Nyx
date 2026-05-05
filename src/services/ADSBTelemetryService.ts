@@ -1,49 +1,61 @@
+const TEST_HEXES = new Set([
+  '00000000', 'FFFFFFFF', 'ABCD1234', '1234ABCD', '11111111', 
+  '77777777', '99999999', 'FEEDFACE', 'DEADBEEF', 'CAFEBABE',
+  '7777XBEG', 'FFMRPN1', '49F08D', '2237FFFF', '00000001'
+]);
+
 export interface FlightState {
   hex: string;
-  flight: string;
-  lat: number;
-  lon: number;
-  alt_geom: number;
-  alt_baro: number;
-  track: number; // heading
-  gs: number; // ground speed
-  squawk?: string;
+  type?: string;
+  flight?: string;
   r?: string;
   t?: string;
-  vert_rate?: number;
+  alt_baro?: number;
+  alt_geom?: number;
+  gs?: number;
+  track?: number;
+  lat: number;
+  lon: number;
+  squawk?: string;
+  category?: string;
+  seen?: number;
+  messages?: number;
 }
 
 // Internal: fetch with exponential backoff to absorb intermittent proxy drops
-const fetchWithRetry = async (url: string, maxAttempts = 3): Promise<Response> => {
-  let lastError: Error | null = null;
+let circuitBreakerTripped = false;
+let lastFailureTime = 0;
+const CIRCUIT_RESET_MS = 90000; // Increased to 90s to absorb persistent proxy instability
 
+const fetchWithRetry = async (url: string, maxAttempts = 2): Promise<Response> => {
+  if (circuitBreakerTripped && Date.now() - lastFailureTime < CIRCUIT_RESET_MS) {
+    throw new Error('Circuit Breaker: Proxy Connection Suspended');
+  }
+
+  let lastError: Error | null = null;
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    if (attempt > 0) {
-      // Exponential backoff: 1s, 2s, 4s
-      await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt - 1) * 1000));
-    }
+    if (attempt > 0) await new Promise(resolve => setTimeout(resolve, 2000));
     try {
       const controller = new AbortController();
-      // Abort if the proxy doesn't respond within 15 seconds (increased for large global payloads)
-      const timeout = setTimeout(() => controller.abort(), 15000);
+      const timeout = setTimeout(() => controller.abort(), 12000);
       const response = await fetch(url, { signal: controller.signal });
       clearTimeout(timeout);
-      if (response.ok) return response;
-      // Non-2xx: don't retry — a 404 or 429 won't self-heal
+      
+      if (response.ok) {
+        circuitBreakerTripped = false;
+        return response;
+      }
       throw new Error(`HTTP ${response.status}`);
     } catch (err: any) {
       lastError = err;
       const msg = err?.message || '';
-      // Retry on network-level errors OR common proxy failure codes (502/503/504)
-      if (
-        err?.name === 'AbortError' || 
-        msg.includes('fetch') || 
-        err?.code === 'ECONNRESET' ||
-        msg.includes('502') || msg.includes('503') || msg.includes('504')
-      ) {
-        continue; // retry
+      // If we hit a protocol or proxy-level crash, trip the circuit breaker
+      if (msg.includes('SSL') || msg.includes('CONNECT') || msg.includes('EPROTO') || msg.includes('socket')) {
+        circuitBreakerTripped = true;
+        lastFailureTime = Date.now();
+        break; 
       }
-      throw err; // surface unexpected errors immediately
+      continue;
     }
   }
 
@@ -56,10 +68,10 @@ export class ADSBTelemetryService {
     try {
       const response = await fetchWithRetry(`/api/adsb/v2/point/${lat}/${lon}/${radiusNm}`);
       const data = await response.json();
-      return data.ac || [];
+      const ac = (data.ac || []) as FlightState[];
+      return ac.filter(f => f.hex && !TEST_HEXES.has(f.hex.toUpperCase()) && f.lat !== undefined && f.lon !== undefined);
     } catch (error: any) {
-      // Only log on final failure — intermediate retries are silent
-      console.warn('[ADSB] Regional feed unavailable after retries:', error?.message ?? error);
+      console.warn('[ADSB] Regional feed unavailable:', error?.message ?? error);
       return [];
     }
   }
@@ -69,20 +81,22 @@ export class ADSBTelemetryService {
     try {
       const response = await fetchWithRetry('/api/adsb/v2/point/0/0/20000');
       const data = await response.json();
-      return data.ac || [];
+      const ac = (data.ac || []) as FlightState[];
+      return ac.filter(f => f.hex && !TEST_HEXES.has(f.hex.toUpperCase()) && f.lat !== undefined && f.lon !== undefined);
     } catch (error: any) {
-      console.warn('[ADSB] Global feed unavailable after retries:', error?.message ?? error);
+      console.warn('[ADSB] Global feed unavailable:', error?.message ?? error);
       return [];
     }
   }
   // Fetch a single aircraft by hex for high-frequency tracked-plane updates
   static async getFlightByHex(hex: string): Promise<FlightState | null> {
-    if (!hex || hex.startsWith('SIM')) return null; // Skip simulated local contacts
+    if (!hex) return null;
     try {
       const response = await fetchWithRetry(`/api/adsb/v2/hex/${hex}`);
-      const data = await response.json();
-      const ac = (data.ac || [])[0];
-      return ac ?? null;
+      const raw = await response.json();
+      const aircraft = (raw.aircraft || []) as FlightState[];
+      // Strictly filter out test/mock hexes and invalid positions
+      return aircraft.filter(f => f.hex && !TEST_HEXES.has(f.hex.toUpperCase()) && f.lat !== undefined && f.lon !== undefined)[0] ?? null;
     } catch {
       return null;
     }

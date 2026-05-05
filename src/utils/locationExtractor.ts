@@ -113,12 +113,24 @@ const CITY_TO_IATA: Record<string, string> = {
   'schiphol': 'AMS', 'charles de gaulle': 'CDG',
 };
 
+// Maritime bodies (Oceans, Seas, Gulfs) to prevent confusion with airlines (e.g. Atlantic Airways)
+const MARITIME_BODIES = [
+  'ATLANTIC', 'PACIFIC', 'INDIAN', 'ARCTIC', 'SOUTHERN',
+  'MEDITERRANEAN', 'CARIBBEAN', 'CASPIAN', 'ADRIATIC', 'BALTIC', 'AEGEAN',
+  'ANDAMAN', 'ARABIAN', 'BEAUFORT', 'BERING', 'CORAL', 'DEAD', 'LABRADOR',
+  'RED SEA', 'RED', 'TASMAN', 'TYRRHENIAN', 'YELLOW', 'BLACK SEA', 'NORTH SEA',
+  'NORWEGIAN SEA', 'CELTIC SEA', 'TASMAN SEA', 'GULF OF MEXICO', 'PERSIAN GULF',
+  'BAY OF BENGAL', 'ENGLISH CHANNEL', 'STRAIT OF GIBRALTAR'
+];
+
 // Proximity signal words – location follows these words = incident site, NOT flight path
-// 'at X', 'on X', 'in X' are included so prepositions are masked before airline extraction
-const PROXIMITY_REGEX = /\b(near|outside|close to|just outside|approaching|over|above|around|off the coast of|adjacent to|in the vicinity of|vicinity of|off|at|on approach to|on final|in)\s+([A-Za-z]+(?:\s+[A-Za-z]+)?)/gi;
+const PROXIMITY_REGEX = /\b(near|outside|close to|just outside|approaching|over|above|around|off the coast of|adjacent to|in the vicinity of|vicinity of|off|at|on approach to|on final|in|upon)\s+([A-Za-z]+(?:\s+[A-Za-z]+)?)/gi;
 
 // Route signal words – location follows these = flight path node
 const ROUTE_REGEX = /\b(?:from|bound for|departing|inbound|outbound|via|heading to|diverted to|diverted into|en route to|arriving at|landed at|landed in)\s+([A-Za-z]+(?:\s+[A-Za-z]+)?)/gi;
+
+// Specific Maritime Masking – catches "OVER ATLANTIC", "OFF THE COAST OF RED SEA" etc.
+const MARITIME_REGEX = new RegExp(`\\b(near|outside|over|above|around|off the coast of|off|in|at|on|into)\\s+(${MARITIME_BODIES.join('|')})`, 'gi');
 
 export interface LocationExtractionResult {
   iatas: string[];
@@ -180,6 +192,16 @@ export function extractLocationsFromText(rawText: string): LocationExtractionRes
 
   const mask = (text: string, start: number, length: number) =>
     text.substring(0, start) + ' '.repeat(length) + text.substring(start + length);
+
+  // Pass 0 – Maritime/Oceanic phrases ("OVER ATLANTIC", "OFF RED SEA")
+  // High priority – MUST mask these before airline extraction to avoid "Atlantic Airways" confusion
+  {
+    const re = new RegExp(MARITIME_REGEX.source, 'gi');
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(rawText)) !== null) {
+      maskedText = mask(maskedText, m.index, m[0].length);
+    }
+  }
 
   // Pass 1 – Proximity phrases ("near Amsterdam", "at Mandera", "in Nashville")
   {

@@ -107,6 +107,16 @@ const BLACKLIST = new Set([
   'INCIDENT', 'ACCIDENT', 'CRASH', 'EMERGENCY', 'ALERT', 'VIDEO', 'NEWS',
 ]);
 
+/**
+ * Validates if a name is a known geographic or linguistic false-positive.
+ */
+export function isBlacklisted(name: string): boolean {
+  if (!name) return true;
+  const upper = name.toUpperCase().trim();
+  if (upper.length < 2) return true;
+  return BLACKLIST.has(upper);
+}
+
 // Bounded bigram cache to prevent memory leak
 const bigramCache = new Map<string, Set<string>>();
 const BIGRAM_CACHE_MAX = 2000;

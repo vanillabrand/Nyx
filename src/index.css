@@ -198,7 +198,7 @@ h3,
   height: 350px;
   min-width: 150px;
   min-height: 200px;
-  background: rgba(10, 1, 1, 0.2) !important;
+  background: rgba(10, 1, 1, 0.2);
   /* Near-Black Base */
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 6px;
@@ -240,6 +240,7 @@ h3,
 .focused-card {
   width: 380px;
   height: calc(100vh - 160px);
+  background: #000000 !important;
   z-index: 1001;
   box-shadow: 0 0 50px rgba(0, 0, 0, 0.8);
   pointer-events: all;
@@ -501,4 +502,34 @@ h3,
 
 .emergency-banner-pulse {
   animation: emergencyGlow 1.4s ease-in-out infinite;
+}
+
+/* HUD Tactical Buttons */
+.hud-button {
+  background: rgba(18, 18, 22, 0.6);
+  border: 1px solid rgba(139, 10, 20, 0.3);
+  color: #e4e4e7;
+  padding: 8px 16px;
+  font-family: 'Space Grotesk', monospace;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(12px);
+  border-radius: 2px;
+  pointer-events: all;
+}
+
+.hud-button:hover {
+  background: rgba(139, 10, 20, 0.25);
+  border-color: rgba(207, 20, 43, 0.6);
+  box-shadow: 0 0 15px rgba(207, 20, 43, 0.2);
+  color: white;
+}
+
+@keyframes locatePulse {
+  0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
 }

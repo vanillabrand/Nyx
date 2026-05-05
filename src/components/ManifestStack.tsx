@@ -27,6 +27,7 @@ export interface ManifestCardData {
   lastUpdated?: string;
   registration?: string | null;
   callsign?: string | null;
+  flight_hex?: string | null;
 }
 
 interface ManifestStackProps {
@@ -69,7 +70,7 @@ const ManifestStack: React.FC<ManifestStackProps> = ({ incidents, selectedId, se
       }}
       style={{ 
         width: isFocused ? '380px' : '192px', 
-        height: isFocused ? 'auto' : '210px',
+        height: isFocused ? 'calc(100vh - 160px)' : '210px',
         position: 'relative',
         cursor: isFocused ? 'default' : 'pointer'
       }}
@@ -78,7 +79,7 @@ const ManifestStack: React.FC<ManifestStackProps> = ({ incidents, selectedId, se
         className={`manifest-card ${card.theme} ${isFocused ? 'focused-card' : ''}`}
         style={{ 
           width: isFocused ? '380px' : '320px',
-          height: isFocused ? 'auto' : '350px',
+          height: isFocused ? 'calc(100vh - 160px)' : '350px',
           transform: isFocused ? 'none' : 'scale(0.60)',
           transformOrigin: 'top left',
           position: isFocused ? 'relative' : 'absolute',
@@ -152,34 +153,27 @@ const ManifestStack: React.FC<ManifestStackProps> = ({ incidents, selectedId, se
                 </div>
               ))}
             </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '0.55rem', opacity: 0.4, textTransform: 'uppercase' }}>{card.lastUpdated || 'UPDATED'}</div>
-              <div style={{ fontSize: '0.55rem', opacity: 0.4, textTransform: 'uppercase' }}>{card.lastUpdated || 'TIMESTAMP'}</div>
+            <div style={{ textAlign: 'right', paddingRight: isFocused ? '40px' : '0' }}>
+              {card.lastUpdated && card.lastUpdated !== 'UNKNOWN' && (
+                <>
+                  <div style={{ fontSize: '0.55rem', opacity: 0.4, textTransform: 'uppercase' }}>SYS_UPDATED: {card.lastUpdated}</div>
+                  <div style={{ fontSize: '0.55rem', opacity: 0.4, textTransform: 'uppercase' }}>SYS_CLOCK: {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                </>
+              )}
               <div style={{ fontSize: '0.7rem', fontWeight: 900, color: 'var(--rose-red)' }}>{card.date}</div>
             </div>
           </div>
           
-          {/* Scrollable Intelligence Body */}
-          <div style={{ 
-            flex: 1, 
-            overflowY: isFocused ? 'auto' : 'hidden', 
-            overflowX: 'hidden',
-            scrollbarWidth: 'thin',
-            scrollbarColor: 'var(--rose-red) transparent',
-            display: 'flex',
-            flexDirection: 'column',
-            paddingRight: isFocused ? '10px' : '0' // Space for scrollbar
-          }}>
           
           {/* Row 2: Central Identity (Centered Logo/Name) */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginBottom: '24px' }}>
-            <div style={{ display: 'flex', gap: '16px', marginBottom: '16px', filter: 'drop-shadow(0 0 10px rgba(207,20,43,0.25))', flexWrap: 'wrap', justifyContent: 'center', color: 'var(--rose-red)' }}>
+          <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginBottom: '24px', paddingTop: '12px' }}>
+            <div style={{ display: 'flex', gap: '12px', marginBottom: '12px', filter: 'drop-shadow(0 0 10px rgba(207,20,43,0.25))', flexWrap: 'wrap', justifyContent: 'center', color: 'var(--rose-red)' }}>
               {card.operator.map((op, idx) => (
-                <AirlineLogo key={idx} operator={op} size={card.operator.length > 1 ? 48 : 64} />
+                <AirlineLogo key={idx} operator={op} size={isFocused ? 48 : (card.operator.length > 1 ? 48 : 64)} />
               ))}
             </div>
             <div className="header-text" style={{ 
-              fontSize: '2.4rem', 
+              fontSize: isFocused ? '1.8rem' : '2.4rem', 
               fontWeight: 900, 
               lineHeight: 1, 
               letterSpacing: '0.05em', 
@@ -224,7 +218,7 @@ const ManifestStack: React.FC<ManifestStackProps> = ({ incidents, selectedId, se
           </div>
 
           {/* Row 3: Mission Flight Path */}
-          <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div style={{ flexShrink: 0, borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1 }}>
               {card.flight_paths && card.flight_paths.length > 0 ? (
                 card.flight_paths.map((path, pIdx) => (
@@ -268,17 +262,17 @@ const ManifestStack: React.FC<ManifestStackProps> = ({ incidents, selectedId, se
 
           {/* Focused Details Overlay */}
           {isFocused && (
-            <div style={{ marginTop: '32px', borderTop: '2px solid var(--rose-red)', paddingTop: '20px', textAlign: 'left' }}>
-              <div style={{ marginBottom: '24px' }}>
-                <div style={{ fontSize: '0.6rem', opacity: 0.4, marginBottom: '8px' }}>INCIDENT_NARRATIVE</div>
+            <div style={{ display: 'flex', flexDirection: 'column', marginTop: '24px', borderTop: '2px solid var(--rose-red)', paddingTop: '20px', textAlign: 'left', minHeight: 0 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', marginBottom: '24px', minHeight: 0 }}>
+                <div style={{ fontSize: '0.6rem', opacity: 0.4, marginBottom: '8px', flexShrink: 0 }}>INCIDENT_NARRATIVE</div>
                 <div style={{ 
+                  maxHeight: '4.8rem', // Exactly 3 lines (1.6 * 3)
                   fontSize: '0.95rem', 
                   lineHeight: 1.6, 
-                  maxHeight: 'calc(100vh - 450px)', 
                   overflowY: 'auto',
                   opacity: 0.9, 
                   background: 'rgba(255,255,255,0.03)', 
-                  padding: '16px', 
+                  padding: '8px 12px', 
                   borderRadius: '4px',
                   scrollbarWidth: 'thin',
                   scrollbarColor: 'var(--rose-red) transparent'
@@ -334,13 +328,12 @@ const ManifestStack: React.FC<ManifestStackProps> = ({ incidents, selectedId, se
               </div>
             </div>
           )}
-          </div>
-        </div>
 
         {/* Aesthetic Manifest Footer Line */}
         <div style={{ height: '4px', background: 'var(--rose-red)', opacity: 0.8 }} />
       </div>
     </div>
+  </div>
   );
 
   return (

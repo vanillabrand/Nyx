@@ -4,7 +4,7 @@ import GlobeScene from './components/GlobeScene';
 import Clock from './components/Clock';
 import type { ManifestCardData, FlightPath } from './components/ManifestStack';
 import patterns from './constants/aviation_patterns.json';
-import { extractAirlinesFromText } from './utils/fuzzyLookup';
+import { extractAirlinesFromText, isBlacklisted } from './utils/fuzzyLookup';
 import { extractAirportsFromText } from './utils/airportLookup';
 import { extractLocationsFromText } from './utils/locationExtractor';
 
@@ -92,6 +92,7 @@ interface RawIncident {
   meta?: IncidentMeta;
   departure?: string;
   destination?: string;
+  flight_hex?: string;
 }
 
 const App: React.FC = () => {
@@ -179,29 +180,12 @@ const App: React.FC = () => {
         console.warn('Live incident feed unavailable, using cache/seed only.');
       }
       
-      const seedResp = await fetch('/data/incidents_seed.json');
-      const seedData: RawIncident[] = seedResp.ok ? await seedResp.json() : [];
-      
       const mergedMap = new Map<string, RawIncident>();
       
       if (Array.isArray(data)) {
         data.forEach((item) => {
           const id = String(item.source_id || item.id || `LIVE-${Math.random().toString(36).substr(2, 9)}`).toUpperCase();
           mergedMap.set(id, item);
-        });
-      }
-
-      if (Array.isArray(seedData)) {
-        seedData.forEach((seed) => {
-          const id = String(seed.source_id || seed.id || `SEED-${Math.random().toString(36).substr(2, 9)}`).toUpperCase();
-          const existing = mergedMap.get(id);
-          
-          if (existing) {
-            const mergedMeta = { ...existing.meta, ...seed.meta };
-            mergedMap.set(id, { ...existing, ...seed, meta: mergedMeta });
-          } else {
-            mergedMap.set(id, seed);
-          }
         });
       }
 
@@ -212,7 +196,6 @@ const App: React.FC = () => {
       });
 
       const formatted: ManifestCardData[] = sortedList.map(([sId, inc]) => {
-        // Use cache if this source ID + headline hasn't changed
         const cacheKey = `${sId}_${inc.headline || ''}`;
         if (extractionCache.current.has(cacheKey)) {
           return extractionCache.current.get(cacheKey)!;
@@ -263,6 +246,8 @@ const App: React.FC = () => {
         seedOps.forEach(name => {
           const upper = name.toUpperCase();
           if (headInfo.fullPath.includes(upper)) return; // skip if it's an airport code
+          if (isBlacklisted(name)) return; // skip if it's a geographic false-positive (e.g. ATLANTIC)
+          
           const alreadyCovered = [...opMap.values()].some(
             v => v.toUpperCase().includes(upper) || upper.includes(v.toUpperCase())
           );
@@ -303,28 +288,28 @@ const App: React.FC = () => {
         const departure = combinedPath.length > 0 ? combinedPath[0] : (valOrUnk(inc.departure) || valOrUnk(inc.meta?.departure) || headInfo.airport || 'UNKNOWN');
         const destination = combinedPath.length > 1 ? combinedPath[combinedPath.length - 1] : (valOrUnk(inc.destination) || valOrUnk(inc.meta?.destination) || headInfo.airport || 'UNKNOWN');
 
-          const { registration, callsign } = extractAviationIdentifiers((inc.headline || '') + ' ' + (inc.narrative || inc.meta?.narrative || ''));
+        const { registration, callsign } = extractAviationIdentifiers((inc.headline || '') + ' ' + (inc.narrative || inc.meta?.narrative || ''));
 
-          const result: ManifestCardData = {
-            ...inc,
-            id: sId,
-            source_id: sId,
-            operator: safeOperators,
-            operator_codes: finalOperatorCodes,
-            aircraft_type: finalAircraft,
-            registration: registration,
-            callsign: callsign,
-            date: String(inc.date || inc.occurred_at || 'RECENT').toUpperCase(),
-            lastUpdated: String(inc.lastUpdated || inc.last_updated || inc.date || 'UNKNOWN').toUpperCase(),
-            metar: String(inc.metar || inc.meta?.metar || '').toUpperCase(),
-            narrative: String(inc.narrative || inc.meta?.narrative || inc.headline || 'NO NARRATIVE DATA AVAILABLE.').toUpperCase(),
-            theme: String(inc.status || '').toUpperCase() === 'CRASH' || String(inc.meta?.severity || '').toLowerCase().includes('accident') ? 'theme-crash' : (inc.status === 'ACCIDENT' ? 'theme-accident' : 'theme-news'),
-            occurrenceCategory: finalTags.length > 0 ? finalTags : [String(inc.meta?.severity || 'MONITORING').toUpperCase()],
-            departure: String(departure).toUpperCase(),
-            destination: String(destination).toUpperCase(),
-            flight_paths: consolidatedPaths,
-            status: inc.status || 'REPORT'
-          };
+        const result: ManifestCardData = {
+          ...inc,
+          id: sId,
+          source_id: sId,
+          operator: safeOperators,
+          operator_codes: finalOperatorCodes,
+          aircraft_type: finalAircraft,
+          registration: registration,
+          callsign: callsign,
+          date: String(inc.date || inc.occurred_at || 'RECENT').toUpperCase(),
+          lastUpdated: String(inc.lastUpdated || inc.last_updated || inc.date || 'UNKNOWN').toUpperCase(),
+          metar: String(inc.metar || inc.meta?.metar || '').toUpperCase(),
+          narrative: String(inc.narrative || inc.meta?.narrative || inc.headline || 'NO NARRATIVE DATA AVAILABLE.').toUpperCase(),
+          theme: String(inc.status || '').toUpperCase() === 'CRASH' || String(inc.meta?.severity || '').toLowerCase().includes('accident') ? 'theme-crash' : (inc.status === 'ACCIDENT' ? 'theme-accident' : 'theme-news'),
+          occurrenceCategory: finalTags.length > 0 ? finalTags : [String(inc.meta?.severity || 'MONITORING').toUpperCase()],
+          departure: String(departure).toUpperCase(),
+          destination: String(destination).toUpperCase(),
+          flight_paths: consolidatedPaths,
+          status: inc.status || 'REPORT'
+        };
 
         extractionCache.current.set(cacheKey, result);
         return result;
@@ -337,6 +322,8 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
+    // One-time cache clear to ensure new maritime logic applies to all historical records
+    extractionCache.current.clear();
     fetchIncidents();
     const syncCheck = setInterval(async () => {
       try {

@@ -12,7 +12,7 @@ export default defineConfig(({ mode }) => {
   
   let agent;
   const agentOpts = { 
-    timeout: 15000, 
+    timeout: 30000, // Increased for stability
     rejectUnauthorized: false, 
     keepAlive: true,
   };
@@ -34,7 +34,22 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           secure: false,
           agent: agent,
-          rewrite: (path) => path.replace(/^\/api\/adsb/, '')
+          autoRewrite: true,
+          headers: {
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1'
+          },
+          rewrite: (path) => path.replace(/^\/api\/adsb/, ''),
+          configure: (proxy, _options) => {
+            proxy.on('error', (err, _req, _res) => {
+              // Absorb handshake/protocol errors silently to prevent terminal flooding
+              const msg = err.message || '';
+              if (msg.includes('EPROTO') || msg.includes('CONNECT') || msg.includes('SSL')) {
+                return;
+              }
+              console.warn('[VITE_PROXY_ERR]', msg);
+            });
+          }
         }
       }
     }
