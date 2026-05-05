@@ -98,6 +98,9 @@ const App: React.FC = () => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [incidents, setIncidents] = useState<ManifestCardData[]>([]);
   const [lastSync, setLastSync] = useState<string | null>(null);
+  const [telemetryMatch, setTelemetryMatch] = useState<boolean>(false);
+
+  const selectedIncident = incidents.find(i => i.id === selectedId) || null;
   
   // Global cache for extraction results to prevent redundant fuzzy matching across syncs
   const extractionCache = React.useRef<Map<string, ManifestCardData>>(new Map());
@@ -109,6 +112,14 @@ const App: React.FC = () => {
     const cleaned = s.replace(/(\d+)(ST|ND|RD|TH)/g, '$1');
     const d = new Date(cleaned);
     return isNaN(d.getTime()) ? 0 : d.getTime();
+  };
+
+  const extractRegistration = (text: string): string | null => {
+    // Robust regex for international aircraft registrations (Tail Numbers)
+    // Matches common patterns: N12345 (US), G-ABCD (UK), D-AIBI (Germany), etc.
+    const regRegex = /\b([A-Z]{1,2}-[A-Z0-9]{3,5}|N[0-9A-Z]{1,5})\b/gi;
+    const matches = text.match(regRegex);
+    return matches ? matches[0].toUpperCase() : null;
   };
 
   // Tactical Frontend Hydration – Two-Stage Pipeline
@@ -283,24 +294,27 @@ const App: React.FC = () => {
         const departure = combinedPath.length > 0 ? combinedPath[0] : (valOrUnk(inc.departure) || valOrUnk(inc.meta?.departure) || headInfo.airport || 'UNKNOWN');
         const destination = combinedPath.length > 1 ? combinedPath[combinedPath.length - 1] : (valOrUnk(inc.destination) || valOrUnk(inc.meta?.destination) || headInfo.airport || 'UNKNOWN');
 
-        const result: ManifestCardData = {
-          ...inc,
-          id: sId,
-          source_id: sId,
-          operator: safeOperators,
-          operator_codes: finalOperatorCodes,
-          aircraft_type: finalAircraft,
-          date: String(inc.date || inc.occurred_at || 'RECENT').toUpperCase(),
-          lastUpdated: String(inc.lastUpdated || inc.last_updated || inc.date || 'UNKNOWN').toUpperCase(),
-          metar: String(inc.metar || inc.meta?.metar || '').toUpperCase(),
-          narrative: String(inc.narrative || inc.meta?.narrative || inc.headline || 'NO NARRATIVE DATA AVAILABLE.').toUpperCase(),
-          theme: String(inc.status || '').toUpperCase() === 'CRASH' || String(inc.meta?.severity || '').toLowerCase().includes('accident') ? 'theme-crash' : (inc.status === 'ACCIDENT' ? 'theme-accident' : 'theme-news'),
-          occurrenceCategory: finalTags.length > 0 ? finalTags : [String(inc.meta?.severity || 'MONITORING').toUpperCase()],
-          departure: String(departure).toUpperCase(),
-          destination: String(destination).toUpperCase(),
-          flight_paths: consolidatedPaths,
-          status: inc.status || 'REPORT'
-        };
+          const registration = extractRegistration((inc.headline || '') + ' ' + (inc.narrative || inc.meta?.narrative || ''));
+
+          const result: ManifestCardData = {
+            ...inc,
+            id: sId,
+            source_id: sId,
+            operator: safeOperators,
+            operator_codes: finalOperatorCodes,
+            aircraft_type: finalAircraft,
+            registration: registration,
+            date: String(inc.date || inc.occurred_at || 'RECENT').toUpperCase(),
+            lastUpdated: String(inc.lastUpdated || inc.last_updated || inc.date || 'UNKNOWN').toUpperCase(),
+            metar: String(inc.metar || inc.meta?.metar || '').toUpperCase(),
+            narrative: String(inc.narrative || inc.meta?.narrative || inc.headline || 'NO NARRATIVE DATA AVAILABLE.').toUpperCase(),
+            theme: String(inc.status || '').toUpperCase() === 'CRASH' || String(inc.meta?.severity || '').toLowerCase().includes('accident') ? 'theme-crash' : (inc.status === 'ACCIDENT' ? 'theme-accident' : 'theme-news'),
+            occurrenceCategory: finalTags.length > 0 ? finalTags : [String(inc.meta?.severity || 'MONITORING').toUpperCase()],
+            departure: String(departure).toUpperCase(),
+            destination: String(destination).toUpperCase(),
+            flight_paths: consolidatedPaths,
+            status: inc.status || 'REPORT'
+          };
 
         extractionCache.current.set(cacheKey, result);
         return result;
@@ -333,7 +347,11 @@ const App: React.FC = () => {
     <ErrorBoundary>
       <div className="app-container" style={{ position: 'relative', width: '100vw', height: '100vh', background: '#030304', overflow: 'hidden' }}>
         <div className="globe-container" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 1 }}>
-          <GlobeScene incidents={incidents} onSelectIncident={() => {}} />
+          <GlobeScene 
+            selectedIncident={selectedIncident}
+            onTelemetryMatch={setTelemetryMatch}
+            onSelectIncident={() => {}} 
+          />
         </div>
 
         <div style={{
@@ -359,7 +377,12 @@ const App: React.FC = () => {
               {incidents.length === 0 ? (
                 <div style={{ color: 'var(--rose-red)', fontSize: '0.8rem', opacity: 0.5 }}>WAITING FOR INTEL FEED...</div>
               ) : (
-                <ManifestStack incidents={incidents} selectedId={selectedId} setSelectedId={setSelectedId} />
+                <ManifestStack 
+                  incidents={incidents} 
+                  selectedId={selectedId} 
+                  setSelectedId={setSelectedId} 
+                  hasTelemetryMatch={telemetryMatch}
+                />
               )}
             </div>
             

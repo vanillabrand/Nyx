@@ -25,15 +25,17 @@ export interface ManifestCardData {
   metar?: string;
   location?: string;
   lastUpdated?: string;
+  registration?: string | null;
 }
 
 interface ManifestStackProps {
   incidents: ManifestCardData[];
   selectedId: string | null;
   setSelectedId: (id: string | null) => void;
+  hasTelemetryMatch?: boolean;
 }
 
-const ManifestStack: React.FC<ManifestStackProps> = ({ incidents, selectedId, setSelectedId }) => {
+const ManifestStack: React.FC<ManifestStackProps> = ({ incidents, selectedId, setSelectedId, hasTelemetryMatch }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [scrollPos, setScrollPos] = useState(0);
@@ -247,13 +249,42 @@ const ManifestStack: React.FC<ManifestStackProps> = ({ incidents, selectedId, se
               </div>
               
               {card.metar && (
-                <div>
+                <div style={{ marginBottom: '24px' }}>
                   <div style={{ fontSize: '0.6rem', opacity: 0.4, marginBottom: '8px' }}>METAR_TELEMETRY_DATA</div>
                   <code style={{ fontSize: '0.85rem', color: 'var(--rose-red)', opacity: 0.8, background: 'rgba(0,0,0,0.3)', padding: '12px', display: 'block', borderRadius: '4px', lineHeight: 1.4 }}>
                     {card.metar}
                   </code>
                 </div>
               )}
+
+              <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontSize: '0.6rem', opacity: 0.4, marginBottom: '4px', letterSpacing: '0.1em' }}>SITUATIONAL AWARENESS</div>
+                  <div style={{ 
+                    fontSize: '0.8rem', 
+                    fontWeight: 900, 
+                    color: hasTelemetryMatch ? '#00ffaa' : 'var(--rose-red)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}>
+                    <span style={{ 
+                      width: '8px', 
+                      height: '8px', 
+                      borderRadius: '50%', 
+                      background: hasTelemetryMatch ? '#00ffaa' : 'rgba(255,255,255,0.1)',
+                      boxShadow: hasTelemetryMatch ? '0 0 10px #00ffaa' : 'none'
+                    }} />
+                    {hasTelemetryMatch ? 'LIVE TELEMETRY LINKED' : 'NO LIVE DATA MATCH'}
+                  </div>
+                </div>
+                {card.registration && (
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '0.6rem', opacity: 0.4, marginBottom: '4px' }}>IDENTIFIER</div>
+                    <div style={{ fontSize: '1rem', fontWeight: 900, color: 'white' }}>{card.registration}</div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>

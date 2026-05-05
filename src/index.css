@@ -227,8 +227,8 @@ h3,
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(3, 3, 4, 0.85);
-  backdrop-filter: blur(4px);
+  background: rgba(3, 3, 4, 0.25);
+  backdrop-filter: blur(2px);
   z-index: 1000;
   display: flex;
   align-items: center; /* Vertically centered */

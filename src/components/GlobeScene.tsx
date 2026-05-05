@@ -6,18 +6,23 @@ import { ADSBTelemetryService } from '../services/ADSBTelemetryService';
 import type { FlightState } from '../services/ADSBTelemetryService';
 import FlightTrackingGrid from './FlightTrackingGrid';
 import EmergencyAlertBanner, { EMERGENCY_SQUAWKS } from './EmergencyAlertBanner';
+import type { ManifestCardData } from './ManifestStack';
 
 interface GlobeSceneProps {
-  incidents: any[];
+  selectedIncident?: ManifestCardData | null;
+  onTelemetryMatch?: (matched: boolean) => void;
   onSelectIncident: (incident: any) => void;
 }
 
-const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) => {
+const GlobeScene: React.FC<GlobeSceneProps> = ({ selectedIncident, onTelemetryMatch, onSelectIncident }) => {
   const mountRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const markersGroupRef = useRef<THREE.Group | null>(null);
   const flightsGroupRef = useRef<THREE.Group | null>(null);
   const rotationGroupRef = useRef<THREE.Group | null>(null);
+  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+  const controlsRef = useRef<OrbitControls | null>(null);
+  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
 
   // Multi-plane tracking (up to 4 simultaneous)
   const [trackedFlights, setTrackedFlights] = useState<FlightState[]>([]);
@@ -37,6 +42,10 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
 
   const isBatchingRef = useRef(false);
   const batchRequestRef = useRef<number>(0);
+  const targetCameraPosRef = useRef<THREE.Vector3 | null>(null);
+
+  const activePlanesRef = useRef<Map<string, any>>(new Map());
+  const rotorMeshesRef = useRef<Map<string, THREE.Object3D>>(new Map());
 
   const globeRadius = 100;
 
@@ -62,11 +71,16 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
 
     const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.z = 250;
+    cameraRef.current = camera;
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
+    rendererRef.current = renderer;
     mountRef.current.appendChild(renderer.domElement);
+    
+    // Global Debug Export
+    (window as any).nyxActivePlanes = activePlanesRef.current;
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
@@ -76,6 +90,7 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
     controls.maxDistance = 400;
     controls.enablePan = false;   // Ensure it always spins on the centre
     controls.target.set(0, 0, 0);
+    controlsRef.current = controls;
 
     // Lighting
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
@@ -190,7 +205,6 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
     };
 
     const geometries = createGeometries();
-    const rotorMeshes = new Map<string, THREE.Object3D>();
 
     const getPlaneType = (typeCode?: string): keyof typeof materials => {
       if (!typeCode) return 'classic';
@@ -212,7 +226,7 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
           const body = new THREE.Mesh(geometries.heliBody, mat);
           const rotor = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.02, 0.15), mat);
           rotor.position.y = 0.45;
-          rotorMeshes.set(hex, rotor);
+          rotorMeshesRef.current.set(hex, rotor);
           group.add(body, rotor);
           group.scale.set(0.35, 0.35, 0.35);
         } else {
@@ -262,7 +276,6 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
       mesh.lookAt(scratchTarget);
     };
 
-    const activePlanes = new Map<string, any>();
     const requestRef = { current: 0 };
     const TRANSITION_DURATION = 30000;
 
@@ -289,14 +302,14 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
           const critical = flights.filter((f: any) => 
             EMERGENCY_SQUAWKS[String(f.squawk)] || trackedHexes.has(f.hex)
           );
-          const existing = flights.filter((f: any) => activePlanes.has(f.hex) && !EMERGENCY_SQUAWKS[String(f.squawk)] && !trackedHexes.has(f.hex));
-          const newOnes = flights.filter((f: any) => !activePlanes.has(f.hex) && !EMERGENCY_SQUAWKS[String(f.squawk)] && !trackedHexes.has(f.hex));
+          const existing = flights.filter((f: any) => activePlanesRef.current.has(f.hex) && !EMERGENCY_SQUAWKS[String(f.squawk)] && !trackedHexes.has(f.hex));
+          const newOnes = flights.filter((f: any) => !activePlanesRef.current.has(f.hex) && !EMERGENCY_SQUAWKS[String(f.squawk)] && !trackedHexes.has(f.hex));
           
           flights = [...critical, ...existing, ...newOnes].slice(0, 5000);
         }
 
         // Initialize simulation if feed is empty and we have no data
-        if (!apiSuccess && activePlanes.size === 0) {
+        if (!apiSuccess && activePlanesRef.current.size === 0) {
           flights = Array.from({ length: 200 }).map((_, i) => ({
             hex: 'SIM' + i,
             flight: 'STEL' + i,
@@ -335,7 +348,7 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
                 const dLon = (Math.sin(trackRad) * dist) / (60 * Math.cos(flight.lat * Math.PI / 180));
                 const projectedTarget = latLonToVector3(flight.lat + dLat, flight.lon + dLon, globeRadius, alt);
 
-                const planeData = activePlanes.get(flight.hex);
+                const planeData = activePlanesRef.current.get(flight.hex);
                 if (planeData) {
                   planeData.startPos.copy(planeData.mesh.position);
                   planeData.targetPos.copy(projectedTarget);
@@ -350,7 +363,7 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
                   mesh.visible = false;
                   flightsGroup.add(mesh);
 
-                  activePlanes.set(flight.hex, {
+                  activePlanesRef.current.set(flight.hex, {
                     mesh,
                     startPos: pos.clone(),
                     targetPos: projectedTarget,
@@ -373,13 +386,13 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
                 const newEmergencyHexes = new Set<string>();
                 const newEmergencyFlights: any[] = [];
 
-                for (const [hex, data] of activePlanes.entries()) {
+                for (const [hex, data] of activePlanesRef.current.entries()) {
                   if (apiSuccess && !currentHexes.has(hex) && !hex.startsWith('SIM')) {
                     data.staleCount = (data.staleCount || 0) + 1;
                     if (data.staleCount > 3) {
                       flightsGroup.remove(data.mesh);
-                      activePlanes.delete(hex);
-                      rotorMeshes.delete(hex);
+                      activePlanesRef.current.delete(hex);
+                      rotorMeshesRef.current.delete(hex);
                       continue;
                     }
                   }
@@ -422,11 +435,11 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
 
       try {
         const fresh = await ADSBTelemetryService.getFlightByHex(hex);
-        if (fresh && activePlanes.has(hex)) {
-          activePlanes.get(hex).flightData = fresh;
+        if (fresh && activePlanesRef.current.has(hex)) {
+          activePlanesRef.current.get(hex).flightData = fresh;
 
           const synced = trackedFlightsRef.current.map(f => {
-            const live = activePlanes.get(f.hex);
+            const live = activePlanesRef.current.get(f.hex);
             return live ? live.flightData : f;
           });
           trackedFlightsRef.current = synced;
@@ -445,18 +458,21 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
 
     const animate = () => {
       try {
-        requestAnimationFrame(animate);
+        requestRef.current = requestAnimationFrame(animate);
         rotationGroup.rotation.y += 0.0001;
 
         const now = Date.now();
         camPosDir.copy(camera.position).normalize();
+        
+        // Cache tracked hexes for this frame to avoid repeated lookups
         const trackedSet = new Set(trackedFlightsRef.current.map(f => f.hex));
+        
         const r_earth = globeRadius;
         const r_cam = camera.position.length();
         const horizonCos = r_earth / r_cam;
         const cullThreshold = horizonCos - 0.15;
 
-        activePlanes.forEach((data) => {
+        activePlanesRef.current.forEach((data) => {
           try {
             if (!data.hasTwoPoints || !data.targetPos) return;
 
@@ -499,7 +515,7 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
                   data.mesh.userData.lastMat = targetMat;
                 }
 
-                const rotor = rotorMeshes.get(data.flightData.hex);
+                const rotor = rotorMeshesRef.current.get(data.flightData.hex);
                 if (rotor) rotor.rotation.y += 0.5;
               }
             }
@@ -512,13 +528,13 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
         // Pulse emergency planes with sine-wave scale
         const pulseScale = 0.2 + Math.abs(Math.sin(now * 0.003)) * 0.18;
         for (const hex of emergencyHexesRef.current) {
-          const pd = activePlanes.get(hex);
+          const pd = activePlanesRef.current.get(hex);
           if (pd && pd.mesh && pd.mesh.visible) pd.mesh.scale.setScalar(pulseScale);
         }
 
         // Update tracked planes' screen positions for the SVG tracking lines
         for (const flight of trackedFlightsRef.current) {
-          const planeData = activePlanes.get(flight.hex);
+          const planeData = activePlanesRef.current.get(flight.hex);
           if (!planeData || !planeData.mesh) {
             trackedPositionsRef.current.delete(flight.hex);
             continue;
@@ -534,12 +550,21 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
           trackedPositionsRef.current.set(flight.hex, { x, y, visible });
         }
 
+        // Smooth Camera Follow
+        if (targetCameraPosRef.current && cameraRef.current) {
+          cameraRef.current.position.lerp(targetCameraPosRef.current, 0.05);
+          if (cameraRef.current.position.distanceTo(targetCameraPosRef.current) < 1) {
+            targetCameraPosRef.current = null;
+          }
+        }
+
         controls.update();
         renderer.render(scene, camera);
       } catch (e) {
         console.error("[HUD] Render loop failure:", e);
       }
     };
+    // Initial start
     requestRef.current = requestAnimationFrame(animate);
 
     // Screen-space click interactivity
@@ -560,7 +585,7 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
       const clickCull = horizonCos - 0.15;
 
       if (flightsGroupRef.current && flightsGroupRef.current.visible) {
-        for (const [, data] of activePlanes.entries()) {
+        for (const [, data] of activePlanesRef.current.entries()) {
           data.mesh.getWorldPosition(scrPos);
           scrPDir.copy(scrPos).normalize();
 
@@ -625,10 +650,50 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
     };
   }, []); // Run once
 
-  // 2. Hydrate Static Incidents
+  // 2. Hydrate Static Incidents & Handle Incident-to-Telemetry Tracking
   useEffect(() => {
-    // Left intentionally empty for now.
-  }, [incidents]);
+    if (!selectedIncident) {
+      onTelemetryMatch?.(false);
+      return;
+    }
+
+    const reg = selectedIncident.registration?.toUpperCase();
+    const flightId = selectedIncident.source_id?.toUpperCase();
+    
+    // Search activePlanesRef for a match
+    let matchedFlight: FlightState | null = null;
+    
+    for (const [, data] of activePlanesRef.current.entries()) {
+      const live = data.flightData as FlightState;
+      const liveReg = (live.r || '').toUpperCase();
+      const liveFlight = (live.flight || '').toUpperCase();
+      
+      // Match on registration or callsign
+      if ((reg && liveReg === reg) || (reg && liveFlight === reg) || (flightId && liveFlight === flightId)) {
+        matchedFlight = live;
+        break;
+      }
+    }
+
+    if (matchedFlight) {
+      // Force track this flight
+      const current = trackedFlightsRef.current;
+      if (!current.some(f => f.hex === matchedFlight!.hex)) {
+        const next = [...current, matchedFlight].slice(-20);
+        trackedFlightsRef.current = next;
+        setTrackedFlights([...next]);
+      }
+
+      // Set camera target for smooth follow
+      const pos = latLonToVector3(matchedFlight.lat, matchedFlight.lon, globeRadius + 60);
+      targetCameraPosRef.current = pos;
+
+      onTelemetryMatch?.(true);
+    } else {
+      onTelemetryMatch?.(false);
+      targetCameraPosRef.current = null;
+    }
+  }, [selectedIncident, onTelemetryMatch]);
 
   // 3. Sync Traffic Visibility
   useEffect(() => {
