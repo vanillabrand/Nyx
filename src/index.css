@@ -231,16 +231,15 @@ h3,
   background: rgba(3, 3, 4, 0.25);
   backdrop-filter: blur(2px);
   z-index: 1000;
-  display: flex;
-  align-items: center; /* Vertically centered */
-  padding: 40px;
+  padding: 80px 40px;
+  align-items: flex-start; /* Align below header */
   pointer-events: none;
   /* Align with AVIATION COMMAND area on the left */
 }
 
 .focused-card {
   width: 380px;
-  height: 600px;
+  height: calc(100vh - 160px);
   z-index: 1001;
   box-shadow: 0 0 50px rgba(0, 0, 0, 0.8);
   pointer-events: all;

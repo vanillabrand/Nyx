@@ -468,19 +468,24 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ selectedIncident, onTelemetryMa
         const now = Date.now();
         camPosDir.copy(camera.position).normalize();
         
+        rotationGroup.updateMatrixWorld();
+        
         // Cache tracked hexes for this frame to avoid repeated lookups
         const trackedSet = new Set(trackedFlightsRef.current.map(f => f.hex));
         
         const r_earth = globeRadius;
         const r_cam = camera.position.length();
         const horizonCos = r_earth / r_cam;
-        const cullThreshold = horizonCos - 0.15;
+        // More lenient threshold to account for plane altitude and perspective
+        const cullThreshold = horizonCos - 0.25;
 
         activePlanesRef.current.forEach((data) => {
           try {
             if (!data.hasTwoPoints || !data.targetPos) return;
 
-            planeDir.copy(data.mesh.position).normalize();
+            // Important: planes are in rotationGroup, camera is in scene. 
+            // Must transform plane position to world space for accurate dot product.
+            planeDir.copy(data.mesh.position).applyMatrix4(rotationGroup.matrixWorld).normalize();
             let finalVisible = planeDir.dot(camPosDir) >= cullThreshold;
 
             if (finalVisible) {

@@ -85,7 +85,7 @@ const ManifestStack: React.FC<ManifestStackProps> = ({ incidents, selectedId, se
           top: 0,
           left: 0,
           zIndex: isFocused ? 1002 : 1,
-          ...(isFocused ? { minHeight: '600px', background: 'rgba(0, 0, 0, 0.6)', backdropFilter: 'blur(10px)', borderRadius: '12px', overflow: 'hidden' } : {}),
+          ...(isFocused ? { height: 'calc(100vh - 160px)', background: '#000000', borderRadius: '12px', overflow: 'hidden' } : {}),
           transition: 'none',
           display: 'flex',
           flexDirection: 'column'
@@ -98,29 +98,19 @@ const ManifestStack: React.FC<ManifestStackProps> = ({ incidents, selectedId, se
                 position: 'absolute',
                 top: '16px',
                 right: '16px',
-                width: '32px',
-                height: '32px',
-                borderRadius: '50%',
-                background: 'rgba(207, 20, 43, 0.15)',
-                border: '2px solid var(--rose-red)',
-                color: 'var(--rose-red)',
-                fontSize: '1.2rem',
-                fontWeight: 900,
+                background: 'none',
+                border: 'none',
+                color: '#ff0000',
+                fontSize: '1.4rem',
+                fontWeight: 'bold',
                 cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
+                padding: '0',
+                lineHeight: 1,
                 zIndex: 1005,
-                transition: 'all 0.2s ease'
+                transition: 'transform 0.1s'
               }}
-              onMouseOver={(e) => {
-                e.currentTarget.style.background = 'var(--rose-red)';
-                e.currentTarget.style.color = 'white';
-              }}
-              onMouseOut={(e) => {
-                e.currentTarget.style.background = 'rgba(207, 20, 43, 0.15)';
-                e.currentTarget.style.color = 'var(--rose-red)';
-              }}
+              onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.2)'}
+              onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
               title="CLOSE MANIFEST"
             >
               ✕
@@ -168,7 +158,19 @@ const ManifestStack: React.FC<ManifestStackProps> = ({ incidents, selectedId, se
               <div style={{ fontSize: '0.7rem', fontWeight: 900, color: 'var(--rose-red)' }}>{card.date}</div>
             </div>
           </div>
-
+          
+          {/* Scrollable Intelligence Body */}
+          <div style={{ 
+            flex: 1, 
+            overflowY: isFocused ? 'auto' : 'hidden', 
+            overflowX: 'hidden',
+            scrollbarWidth: 'thin',
+            scrollbarColor: 'var(--rose-red) transparent',
+            display: 'flex',
+            flexDirection: 'column',
+            paddingRight: isFocused ? '10px' : '0' // Space for scrollbar
+          }}>
+          
           {/* Row 2: Central Identity (Centered Logo/Name) */}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginBottom: '24px' }}>
             <div style={{ display: 'flex', gap: '16px', marginBottom: '16px', filter: 'drop-shadow(0 0 10px rgba(207,20,43,0.25))', flexWrap: 'wrap', justifyContent: 'center', color: 'var(--rose-red)' }}>
@@ -272,7 +274,7 @@ const ManifestStack: React.FC<ManifestStackProps> = ({ incidents, selectedId, se
                 <div style={{ 
                   fontSize: '0.95rem', 
                   lineHeight: 1.6, 
-                  maxHeight: 'calc(1.6em * 3 + 32px)', // 3 lines of text + 16px padding top/bottom
+                  maxHeight: 'calc(100vh - 450px)', 
                   overflowY: 'auto',
                   opacity: 0.9, 
                   background: 'rgba(255,255,255,0.03)', 
@@ -332,6 +334,7 @@ const ManifestStack: React.FC<ManifestStackProps> = ({ incidents, selectedId, se
               </div>
             </div>
           )}
+          </div>
         </div>
 
         {/* Aesthetic Manifest Footer Line */}
