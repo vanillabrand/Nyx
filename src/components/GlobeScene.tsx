@@ -219,7 +219,7 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
           else if (type === 'privateJet') group.scale.set(0.2, 0.2, 0.2);
           else group.scale.set(0.3, 0.3, 0.3);
         }
-        
+
         group.userData.lastMat = mat;
         return group;
       } catch (e) {
@@ -230,24 +230,33 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
       }
     };
 
+    const scratchNormal = new THREE.Vector3();
+    const scratchWorldUp = new THREE.Vector3(0, 1, 0);
+    const scratchEast = new THREE.Vector3();
+    const scratchNorth = new THREE.Vector3();
+    const scratchDir = new THREE.Vector3();
+    const scratchTarget = new THREE.Vector3();
+
     const orientPlane = (mesh: THREE.Object3D, pos: THREE.Vector3, track: number) => {
-      const normal = pos.clone().normalize();
-      mesh.up.copy(normal);
+      scratchNormal.copy(pos).normalize();
+      mesh.up.copy(scratchNormal);
 
       const trackRad = (track || 0) * (Math.PI / 180);
-      const worldUp = new THREE.Vector3(0, 1, 0);
 
-      // Robust tangent calculation
-      const east = Math.abs(normal.y) > 0.999
-        ? new THREE.Vector3(1, 0, 0)
-        : new THREE.Vector3().crossVectors(worldUp, normal).normalize();
-      const north = new THREE.Vector3().crossVectors(normal, east).normalize();
+      // Robust tangent calculation using scratchpad
+      if (Math.abs(scratchNormal.y) > 0.999) {
+        scratchEast.set(1, 0, 0);
+      } else {
+        scratchEast.crossVectors(scratchWorldUp, scratchNormal).normalize();
+      }
+      scratchNorth.crossVectors(scratchNormal, scratchEast).normalize();
 
-      const dir = new THREE.Vector3()
-        .addScaledVector(north, Math.cos(trackRad))
-        .addScaledVector(east, Math.sin(trackRad));
+      scratchDir.set(0, 0, 0)
+        .addScaledVector(scratchNorth, Math.cos(trackRad))
+        .addScaledVector(scratchEast, Math.sin(trackRad));
 
-      mesh.lookAt(pos.clone().add(dir));
+      scratchTarget.copy(pos).add(scratchDir);
+      mesh.lookAt(scratchTarget);
     };
 
     const activePlanes = new Map<string, any>();
@@ -294,10 +303,10 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
         if (flights && flights.length > 0) {
           const currentHexes = new Set();
           const now = Date.now();
-          
-          // --- HIGH-PERFORMANCE BATCHED PROCESSING ---
+
+          // --- BALANCED BATCHED PROCESSING ---
           let index = 0;
-          const BATCH_SIZE = 500; // Rapid tactical population
+          const BATCH_SIZE = 150; // Optimized for performance/responsiveness
 
           const processBatch = () => {
             const end = Math.min(index + BATCH_SIZE, flights.length);
@@ -312,7 +321,7 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
               const gs = Number(flight.gs || 450);
 
               const trackRad = currentTrack * (Math.PI / 180);
-              const dist = (gs * 60) / 3600; 
+              const dist = (gs * 60) / 3600;
               const dLat = (Math.cos(trackRad) * dist) / 60;
               const dLon = (Math.sin(trackRad) * dist) / (60 * Math.cos(flight.lat * Math.PI / 180));
               const projectedTarget = latLonToVector3(flight.lat + dLat, flight.lon + dLon, globeRadius, alt);
@@ -325,11 +334,11 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
                 planeData.startTrack = Number(planeData.mesh.userData.currentTrack) || currentTrack;
                 planeData.targetTrack = currentTrack;
                 planeData.flightData = flight;
-                planeData.staleCount = 0; 
+                planeData.staleCount = 0;
               } else {
                 const mesh = createPlaneMesh(flight.hex, flight.t);
                 mesh.position.copy(pos);
-                mesh.visible = false; 
+                mesh.visible = false;
                 flightsGroup.add(mesh);
 
                 activePlanes.set(flight.hex, {
@@ -352,7 +361,7 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
               // Final cleanup and Emergency Scan after batch completes
               const newEmergencyHexes = new Set<string>();
               const newEmergencyFlights: any[] = [];
-              
+
               for (const [hex, data] of activePlanes.entries()) {
                 // 1. Cleanup stale contacts
                 if (apiSuccess && !currentHexes.has(hex) && !hex.startsWith('SIM')) {
@@ -361,10 +370,10 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
                     flightsGroup.remove(data.mesh);
                     activePlanes.delete(hex);
                     rotorMeshes.delete(hex);
-                    continue; 
+                    continue;
                   }
                 }
-                
+
                 // 2. Emergency Detection
                 const sq = String(data.flightData?.squawk ?? '');
                 if (EMERGENCY_SQUAWKS[sq]) {
@@ -372,7 +381,7 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
                   newEmergencyHexes.add(hex);
                 }
               }
-              
+
               emergencyHexesRef.current = newEmergencyHexes;
               setEmergencyFlights(newEmergencyFlights);
             }
@@ -403,7 +412,7 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
         const fresh = await ADSBTelemetryService.getFlightByHex(hex);
         if (fresh && activePlanes.has(hex)) {
           activePlanes.get(hex).flightData = fresh;
-          
+
           // Sync state for the instruments
           const synced = trackedFlightsRef.current.map(f => {
             const live = activePlanes.get(f.hex);
@@ -431,7 +440,7 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
 
         // Dynamic Horizon Culling variables
         camPosDir.copy(camera.position).normalize();
-        
+
         const r_earth = globeRadius;
         const r_cam = camera.position.length();
         const horizonCos = r_earth / r_cam;
@@ -471,7 +480,7 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
                 if (diffT > 180) diffT -= 360;
                 if (diffT < -180) diffT += 360;
                 const newTrack = currentT + (diffT * 0.05);
-                
+
                 orientPlane(data.mesh, data.mesh.position, newTrack);
                 data.mesh.userData.currentTrack = newTrack;
 
@@ -643,7 +652,7 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ incidents, onSelectIncident }) 
   useEffect(() => {
     if (flightsGroupRef.current) {
       // Group itself stays visible so we can control individual plane visibility in the animate loop
-      flightsGroupRef.current.visible = true; 
+      flightsGroupRef.current.visible = true;
     }
   }, [trafficMode]);
 

@@ -1,97 +1,136 @@
-# Nyx: Flight Intelligence Engine (FIE)
+# Nyx: Flight Intelligence Engine
 
-Nyx is a high-fidelity, deterministic platform designed for real-time global aviation incident monitoring and predictive safety analysis. By unifying data from authoritative sources into a semantic knowledge graph, Nyx provides a "single source of truth" for aviation safety professionals.
+Nyx is a platform designed for real-time global aviation incident monitoring and safety analysis. By combining data from multiple authoritative sources into a relational knowledge graph, Nyx provides a consistent reference point for aviation safety analysis.
 
----
+## Project Goals
 
-## 🎯 Project Goals
+The primary objective of Nyx is to provide a transparent and high-performance system for tracking aviation occurrences worldwide.
 
-The primary objective of Nyx is to provide a transparent, auditable, and high-performance system for tracking aviation occurrences worldwide. 
+*   Real-time Monitoring: Automatically ingest data from sources like The Aviation Herald and official government bodies.
+*   Pattern Analysis: Identify trends in fleet safety and regional risks.
+*   Data Integrity: Implement a Source Authority Ranking (SAR) to resolve conflicting information between news and official reports.
+*   Performance: Ensure low-latency queries across large datasets.
 
-*   **Real-time Monitoring**: Automatically ingest data from sources like The Aviation Herald and official government bodies.
-*   **Predictive Analytics**: Identify patterns in fleet safety and regional risks before they escalate.
-*   **Data Integrity**: Implement a "Source Authority Ranking" (SAR) to resolve conflicting information between news and official reports.
-*   **High Performance**: Ensure sub-2s query latency across hundreds of thousands of complex records.
+## Technical Stack
 
----
+Nyx is built using a scalable stack chosen for performance and reliability:
 
-## 🛠 The Tech Stack
+*   Frontend: React, Vite, and CSS for the user interface.
+*   Visualisation: Three.js for the 3D globe.
+*   Primary Database: Neo4j (Graph) for mapping relationships between aircraft, airlines, airports, and incidents.
+*   Secondary Database: SQLite for local caching and audit logging.
+*   Backend: Node.js and TypeScript for the data pipeline.
 
-Nyx is built using a modern, scalable stack chosen for performance and data integrity:
+## System Architecture
 
-*   **Frontend**: React + Vite + Tailwind CSS for a responsive, premium user interface.
-*   **Visualisation**: Three.js for a high-performance 3D tactical globe.
-*   **Primary Database**: Neo4j (Graph) for mapping complex relationships between aircraft, airlines, airports, and incidents.
-*   **Secondary Database**: SQLite for high-speed local caching and audit logging.
-*   **Backend/Ingestion**: Node.js + TypeScript for a type-safe, resilient data pipeline.
-
----
-
-## 🏗 System Architecture
-
-Nyx uses a decoupled architecture where the ingestion engine acts as a "Truth Miner," feeding the graph database which then serves the frontend.
+Nyx uses a decoupled architecture where the ingestion engine processes data from external sources and feeds the graph database. The system integrates live ADSB telemetry for real-time tracking.
 
 ```mermaid
 graph TD
     subgraph "External Data Sources"
         A[Aviation Herald] --> P[Proxy Service]
         B[ICAO / FAA / NTSB] --> P
+        C[ADSB.lol API] --> P
     end
 
-    subgraph "Backend (Ingestion Engine)"
+    subgraph "Backend"
         P --> S[Scraper Service]
-        S --> R[Reconciliation Engine - SAR]
+        S --> R[Reconciliation Engine]
         R --> SQ[(SQLite Cache)]
     end
 
     subgraph "Data Layer"
         R --> N[(Neo4j Knowledge Graph)]
+        C --> T[Telemetry Service]
     end
 
     subgraph "Frontend"
         N --> D[Dashboard API]
-        D --> V[3D Tactical Globe]
+        T --> V[3D Globe]
+        D --> V
         D --> L[Analytics UI]
     end
 ```
 
-### Why this approach?
-Unlike traditional relational databases, a **Graph Database** (Neo4j) allows us to query complex relationships—such as "Show me all incidents involving this specific aircraft engine type across different airlines"—in constant time.
+### Key Features
+*   Movement Interpolation: Decouples 3D motion from API polling latency using a continuous physics model.
+*   Batched Telemetry Loading: Efficient processing (150 units per frame) that populates large aircraft fleets without blocking the main browser thread.
+*   Atmospheric Overlays: Integrated gradient fades to ensure HUD data remains readable against the globe background.
+*   Memory Management: Optimized Three.js loop utilizing scratchpad memory to handle thousands of concurrent contacts with minimal overhead.
 
----
+## Data Model: Situational Awareness
 
-## 📊 Data Schema & Standards
+The frontend consumes a telemetry stream, transforming raw JSON packets into a standard FlightState model.
 
-Nyx conforms to the **ICAO Annex 13 (ADREP)** and **ECCAIRS 2** international standards for aviation occurrence reporting.
+### Telemetry Interface (FlightState)
+| Property | Type | Description |
+| :--- | :--- | :--- |
+| hex | string | Unique 24-bit ICAO mode-S identifier. |
+| flight | string | Callsign (e.g. BAW123). |
+| lat / lon | number | WGS84 decimal coordinates. |
+| alt_geom | number | Geometric altitude (GPS-based). |
+| track | number | Magnetic heading (0-359°). |
+| gs | number | Ground speed in knots. |
+| squawk | string | 4-digit transponder code (7700 = Emergency). |
 
-### Core Entities (Mini-Specs)
+## Data Cleansing and Normalisation
 
-*   **Incident**: The central event.
-    *   *Example*: Engine failure at 30,000ft.
-*   **Aircraft**: Specific hull by tail number.
-    *   *Example*: G-VGIN (Boeing 787-9).
-*   **Airline**: The operating carrier.
-    *   *Example*: Virgin Atlantic.
-*   **Airport**: The location of the event or origin/destination.
-    *   *Example*: EGLL (London Heathrow).
+Nyx employs a parsing pipeline to transform unstructured text from The Aviation Herald (AVHerald) into a structured data model.
 
----
+### 1. Headline Parsing
+Raw headlines are processed to extract core entities:
+*   Pattern Matching: Uses ICAO-compliant strings to identify aircraft types.
+*   Entity Mapping: Segments the string into Airline, Aircraft, Location, and Date.
+*   Normalization: Standardises airline names and removes noise characters to ensure database consistency.
 
-## ⚖️ Governance & Safety
+### 2. Information Extraction
+The content of an article is separated into three fields:
+*   Narrative: The primary chronological account of the incident.
+*   METAR Data: Extraction of meteorological data for environmental analysis.
+*   Timestamps: Capture of report and update times to track incident development.
 
-Nyx implements a **Source Authority Ranking (SAR)** system to ensure data reliability.
+### 3. Model Fitting
+Data is validated against the schema before being committed to the database:
+*   Unique ID: Every incident is indexed by its original Article ID to prevent duplicates.
+*   Type Conversion: Numeric values are sanitised and cast to appropriate formats for processing.
+*   Relationship Linking: The reconciliation engine ensures incidents are linked to existing aircraft, airline, and airport records.
+
+## Core Logic and Telemetry Handling
+
+### 1. Motion Smoothing
+Nyx uses a continuous interpolation model to eliminate snapping. Instead of moving a plane instantly to new coordinates, the system calculates a 60-second projection:
+*   Projection: Target Position = Current Position + (Ground Speed * 60s).
+*   Interpolation: The plane moves towards this target at a rate of 1.5% per frame.
+*   Benefit: This ensures fluid motion even if an API update is delayed.
+
+### 2. Altitude Handling
+Altitude is treated as a radial offset from the globe centre:
+*   Radius: Globe Radius + (Altitude * Scale).
+*   Smoothing: A 5% vertical lerp is applied to altitude changes to prevent sudden jumps.
+
+### 3. Contact Persistence
+Data can be intermittent due to signal issues or proxy shifts:
+*   Grace Period: Aircraft are only removed after 3 consecutive failed updates (90 seconds).
+*   Stale Tracking: Contacts remain at their last known projected vector until the grace period expires or new data is received.
+
+### 4. Mathematical Optimisation
+To handle large fleets (5,000+ aircraft) without browser freezing:
+*   Scratchpad Vectors: 3D calculations use a pre-allocated pool of objects to avoid constant memory allocation.
+*   Early Exit Culling: Visibility is calculated before expensive matrix math, allowing the engine to skip processing for approximately 50% of the fleet in every frame.
+
+## Governance and Safety
+
+Nyx implements a Source Authority Ranking (SAR) system to ensure data reliability.
 
 | Authority Level | Source Type | Description |
 | :--- | :--- | :--- |
-| **Level 1 (Highest)** | ICAO / NTSB Final Reports | Conclusive, legally binding data. |
-| **Level 2** | FAA / EASA Preliminary | Official government data, subject to update. |
-| **Level 3** | The Aviation Herald | Rapid, verified news-based reports. |
+| Level 1 (Highest) | ICAO / NTSB Final Reports | Conclusive, legally binding data. |
+| Level 2 | FAA / EASA Preliminary | Official government data, subject to update. |
+| Level 3 | The Aviation Herald | Verified news-based reports. |
 
-When data conflicts occur, Nyx automatically promotes the highest-ranking source's data to the "Truth" field while preserving other reports in the audit trail.
+When data conflicts occur, the system promotes the highest-ranking source's data to the primary field while preserving other reports in an audit trail.
 
----
-
-## 🚀 Local Setup & Configuration
+## Local Setup
 
 ### Prerequisites
 *   Node.js (v20+)
@@ -100,18 +139,18 @@ When data conflicts occur, Nyx automatically promotes the highest-ranking source
 
 ### Setup Instructions
 
-1.  **Clone the repository**:
+1.  Clone the repository:
     ```bash
     git clone https://github.com/vanillabrand/Nyx.git
     cd Nyx
     ```
 
-2.  **Install dependencies**:
+2.  Install dependencies:
     ```bash
     npm install
     ```
 
-3.  **Configure Environment**:
+3.  Configure Environment:
     Create a `.env` file in the root directory:
     ```env
     NEO4J_URI=bolt://localhost:7687
@@ -119,37 +158,18 @@ When data conflicts occur, Nyx automatically promotes the highest-ranking source
     NEO4J_PASSWORD=your_password
     ```
 
-4.  **Initialise the Database**:
-    Run the bootstrap script to set up constraints and master data:
+4.  Initialise the Database:
     ```bash
     npm run db:bootstrap
     ```
 
-5.  **Run the App**:
+5.  Run the Application:
     ```bash
     npm run dev
     ```
 
----
-
-## 🕵️‍♂️ Intelligence Gathering: The Smart Hunt
-The system utilizes the **ProAngelos High-Velocity Engine** for data acquisition, featuring:
-*   **Dual-Pass Intelligence**:
-    1.  **Discovery Pass (LEAN)**: Rapidly scans sources for incident IDs and metadata.
-    2.  **Hydration Pass (FULL)**: Recursively fetches detailed narratives and METAR data only for missing or stale records.
-*   **SOCKS5 Stealth**: Utilizes rotating residential proxies via SOCKS5 for maximum throughput and anonymity.
-*   **Neo4j Caching**: All results are persisted in a graph, enabling instant retrieval for future queries and complex relationship mining.
-
-### 🚀 Running a Mission
-You can trigger a high-speed harvest mission using the standalone scraper:
-```bash
-wsl -e npx tsx scripts/test_smart_mission.ts
-```
-
----
-
-## 🌐 External Data Sources
-*   **The Aviation Herald**: Primary source for real-time incident alerts.
-*   **ICAO Doc 8643**: Master reference for aircraft type designators.
-*   **NTSB/FAA Databases**: Historical and regulatory incident data.
-```
+## External Data Sources
+*   The Aviation Herald: Incident alerts.
+*   ADSB.lol: Live aircraft telemetry.
+*   ICAO Doc 8643: Aircraft type designators.
+*   NTSB/FAA Databases: Regulatory incident data.
