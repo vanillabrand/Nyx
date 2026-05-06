@@ -12,6 +12,8 @@ export interface FlightState {
   t?: string;
   alt_baro?: number;
   alt_geom?: number;
+  baro_rate?: number;
+  geom_rate?: number;
   gs?: number;
   track?: number;
   lat: number;
@@ -75,7 +77,6 @@ export class ADSBTelemetryService {
       return [];
     }
   }
-
   // Fetch all live flights globally (0/0/20000 covers the entire planet)
   static async getGlobalFlights(): Promise<FlightState[]> {
     try {

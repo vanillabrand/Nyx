@@ -98,6 +98,8 @@ interface RawIncident {
 const App: React.FC = () => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [incidents, setIncidents] = useState<ManifestCardData[]>([]);
+  const [incidentsLoaded, setIncidentsLoaded] = useState<boolean>(false);
+  const [flightsLoaded, setFlightsLoaded] = useState<boolean>(false);
   const [lastSync, setLastSync] = useState<string | null>(null);
   const [telemetryMatch, setTelemetryMatch] = useState<boolean>(false);
 
@@ -195,127 +197,136 @@ const App: React.FC = () => {
         return dateB - dateA;
       });
 
-      const formatted: ManifestCardData[] = sortedList.map(([sId, inc]) => {
-        const cacheKey = `${sId}_${inc.headline || ''}`;
-        if (extractionCache.current.has(cacheKey)) {
-          return extractionCache.current.get(cacheKey)!;
+      const formatted: ManifestCardData[] = [];
+      let index = 0;
+      const CHUNK_SIZE = 3;
+
+      const processChunk = () => {
+        const end = Math.min(index + CHUNK_SIZE, sortedList.length);
+        for (let i = index; i < end; i++) {
+          const [sId, inc] = sortedList[i];
+          const cacheKey = `${sId}_${inc.headline || ''}`;
+          if (extractionCache.current.has(cacheKey)) {
+            formatted.push(extractionCache.current.get(cacheKey)!);
+            continue;
+          }
+
+          const rawTags = Array.isArray(inc.occurrenceCategory) ? inc.occurrenceCategory : [];
+          const detectedTags = extractTags((inc.headline || '') + ' ' + (inc.narrative || inc.meta?.narrative || ''));
+          const finalTags = [...new Set([...rawTags.map((s) => String(s).toUpperCase()), ...detectedTags])].filter(t => t !== 'INCIDENT' && t !== 'ACCIDENT' && t !== 'CRASH' && t !== 'NEWS');
+
+          const headInfo = hydrateFromHeadline(inc.headline || '');
+
+          const finalAircraft = getUniqueList(inc.aircraft_type, inc.meta?.aircraft_type, headInfo.aircraft);
+          
+          const totalAircraftCount = Math.max(
+            finalAircraft.filter(a => a !== 'UNKNOWN').length,
+            headInfo.aircraft.length,
+            1
+          );
+
+          const filteredHeadAirlines = headInfo.airlines.filter(a => {
+            const code = (a.iata || a.icao || '').toUpperCase();
+            return !headInfo.fullPath.includes(code);
+          });
+
+          const associatedAirlines = filteredHeadAirlines.slice(0, totalAircraftCount);
+
+          const opMap = new Map<string, string>();
+          associatedAirlines.forEach(a => {
+            const code = (a.iata && a.iata !== '-') ? a.iata : (a.icao && a.icao !== '-') ? a.icao : null;
+            if (code) {
+              if (!opMap.has(code) || a.name.length > (opMap.get(code) || '').length) opMap.set(code, a.name);
+            } else {
+              opMap.set(a.name, a.name);
+            }
+          });
+
+          const seedOps = [
+            ...(Array.isArray(inc.operator) ? inc.operator : [inc.operator]),
+            ...(Array.isArray(inc.meta?.operator) ? inc.meta?.operator : [inc.meta?.operator])
+          ].map(v => valOrUnk(v)).filter(v => v && v !== 'OPERATOR' && v !== 'UNKNOWN') as string[];
+
+          seedOps.forEach(name => {
+            const upper = name.toUpperCase();
+            if (headInfo.fullPath.includes(upper)) return;
+            if (isBlacklisted(name)) return;
+            
+            const alreadyCovered = [...opMap.values()].some(
+              v => v.toUpperCase().includes(upper) || upper.includes(v.toUpperCase())
+            );
+            if (!alreadyCovered) opMap.set(name, name);
+          });
+
+          const finalOperators = [...new Set(opMap.values())].sort((a, b) => b.length - a.length);
+          const safeOperators = finalOperators.length > 0 ? finalOperators : ['UNKNOWN'];
+
+          const finalOperatorCodes = [...new Set([
+            ...(Array.isArray(inc.meta?.operator_code) ? inc.meta.operator_code : [inc.meta?.operator_code]),
+            ...associatedAirlines.map(a => a.iata && a.iata !== '-' ? a.iata : (a.icao && a.icao !== '-' ? a.icao : null))
+          ])].filter(Boolean).map(c => String(c).toUpperCase());
+
+          const narrativeAirports = extractAirportsFromText(inc.narrative || inc.meta?.narrative || '');
+          const combinedPath = [...new Set([...headInfo.fullPath, ...narrativeAirports])];
+          
+          const rawFlightPaths: FlightPath[] = safeOperators.map((op) => ({
+            operator: op,
+            route: combinedPath.length > 0 ? combinedPath : [headInfo.airport].filter(a => a !== 'UNKNOWN')
+          }));
+
+          const uniqueRoutesMap = new Map<string, string[]>();
+          rawFlightPaths.forEach(fp => {
+            const rKey = JSON.stringify(fp.route);
+            if (!uniqueRoutesMap.has(rKey)) uniqueRoutesMap.set(rKey, []);
+            uniqueRoutesMap.get(rKey)!.push(fp.operator);
+          });
+
+          const consolidatedPaths: FlightPath[] = Array.from(uniqueRoutesMap.entries()).map(([routeStr, ops]) => ({
+            operator: ops.join(' / '),
+            route: JSON.parse(routeStr)
+          }));
+
+          const departure = combinedPath.length > 0 ? combinedPath[0] : (valOrUnk(inc.departure) || valOrUnk(inc.meta?.departure) || headInfo.airport || 'UNKNOWN');
+          const destination = combinedPath.length > 1 ? combinedPath[combinedPath.length - 1] : (valOrUnk(inc.destination) || valOrUnk(inc.meta?.destination) || headInfo.airport || 'UNKNOWN');
+
+          const { registration, callsign } = extractAviationIdentifiers((inc.headline || '') + ' ' + (inc.narrative || inc.meta?.narrative || ''));
+
+          const result: ManifestCardData = {
+            ...inc,
+            id: sId,
+            source_id: sId,
+            operator: safeOperators,
+            operator_codes: finalOperatorCodes,
+            aircraft_type: finalAircraft,
+            registration: registration,
+            callsign: callsign,
+            date: String(inc.date || inc.occurred_at || 'RECENT').toUpperCase(),
+            lastUpdated: String(inc.lastUpdated || inc.last_updated || inc.date || 'UNKNOWN').toUpperCase(),
+            metar: String(inc.metar || inc.meta?.metar || '').toUpperCase(),
+            narrative: String(inc.narrative || inc.meta?.narrative || inc.headline || 'NO NARRATIVE DATA AVAILABLE.').toUpperCase(),
+            theme: String(inc.status || '').toUpperCase() === 'CRASH' || String(inc.meta?.severity || '').toLowerCase().includes('accident') ? 'theme-crash' : (inc.status === 'ACCIDENT' ? 'theme-accident' : 'theme-news'),
+            occurrenceCategory: finalTags.length > 0 ? finalTags : [String(inc.meta?.severity || 'MONITORING').toUpperCase()],
+            departure: String(departure).toUpperCase(),
+            destination: String(destination).toUpperCase(),
+            flight_paths: consolidatedPaths,
+            status: inc.status || 'REPORT'
+          };
+
+          extractionCache.current.set(cacheKey, result);
+          formatted.push(result);
         }
 
-        const rawTags = Array.isArray(inc.occurrenceCategory) ? inc.occurrenceCategory : [];
-        const detectedTags = extractTags((inc.headline || '') + ' ' + (inc.narrative || inc.meta?.narrative || ''));
-        const finalTags = [...new Set([...rawTags.map((s) => String(s).toUpperCase()), ...detectedTags])].filter(t => t !== 'INCIDENT' && t !== 'ACCIDENT' && t !== 'CRASH' && t !== 'NEWS');
+        index = end;
+        setIncidents([...formatted]);
 
-        const headInfo = hydrateFromHeadline(inc.headline || '');
+        if (index < sortedList.length) {
+          requestAnimationFrame(processChunk);
+        } else {
+          setIncidentsLoaded(true);
+        }
+      };
 
-        
-        const finalAircraft = getUniqueList(inc.aircraft_type, inc.meta?.aircraft_type, headInfo.aircraft);
-        
-        // Total aircraft count = seed data + headline extracted (union, deduplicated)
-        const totalAircraftCount = Math.max(
-          finalAircraft.filter(a => a !== 'UNKNOWN').length,
-          headInfo.aircraft.length,
-          1 // always allow at least 1 operator
-        );
-
-        // Mutual exclusion already done in hydrateFromHeadline via masking.
-        // Additional guard: skip any extracted airline whose code equals an identified airport.
-        const filteredHeadAirlines = headInfo.airlines.filter(a => {
-          const code = (a.iata || a.icao || '').toUpperCase();
-          return !headInfo.fullPath.includes(code);
-        });
-
-        const associatedAirlines = filteredHeadAirlines.slice(0, totalAircraftCount);
-
-        // Build operator map: code → name  (code-aware deduplication)
-        const opMap = new Map<string, string>();
-        associatedAirlines.forEach(a => {
-          const code = (a.iata && a.iata !== '-') ? a.iata : (a.icao && a.icao !== '-') ? a.icao : null;
-          if (code) {
-            if (!opMap.has(code) || a.name.length > (opMap.get(code) || '').length) opMap.set(code, a.name);
-          } else {
-            opMap.set(a.name, a.name);
-          }
-        });
-
-        // Seed/scraper operators: highest priority – always add unless they are airport codes
-        const seedOps = [
-          ...(Array.isArray(inc.operator) ? inc.operator : [inc.operator]),
-          ...(Array.isArray(inc.meta?.operator) ? inc.meta?.operator : [inc.meta?.operator])
-        ].map(v => valOrUnk(v)).filter(v => v && v !== 'OPERATOR' && v !== 'UNKNOWN') as string[];
-
-        seedOps.forEach(name => {
-          const upper = name.toUpperCase();
-          if (headInfo.fullPath.includes(upper)) return; // skip if it's an airport code
-          if (isBlacklisted(name)) return; // skip if it's a geographic false-positive (e.g. ATLANTIC)
-          
-          const alreadyCovered = [...opMap.values()].some(
-            v => v.toUpperCase().includes(upper) || upper.includes(v.toUpperCase())
-          );
-          if (!alreadyCovered) opMap.set(name, name);
-        });
-
-        const finalOperators = [...new Set(opMap.values())].sort((a, b) => b.length - a.length);
-        // Guarantee non-empty
-        const safeOperators = finalOperators.length > 0 ? finalOperators : ['UNKNOWN'];
-
-        // Unified Operator Codes (IATA/ICAO) – from resolved airlines + seed metadata
-        const finalOperatorCodes = [...new Set([
-          ...(Array.isArray(inc.meta?.operator_code) ? inc.meta.operator_code : [inc.meta?.operator_code]),
-          ...associatedAirlines.map(a => a.iata && a.iata !== '-' ? a.iata : (a.icao && a.icao !== '-' ? a.icao : null))
-        ])].filter(Boolean).map(c => String(c).toUpperCase());
-
-        // Consolidate flight paths
-        const narrativeAirports = extractAirportsFromText(inc.narrative || inc.meta?.narrative || '');
-        const combinedPath = [...new Set([...headInfo.fullPath, ...narrativeAirports])];
-        
-        const rawFlightPaths: FlightPath[] = safeOperators.map((op) => ({
-          operator: op,
-          route: combinedPath.length > 0 ? combinedPath : [headInfo.airport].filter(a => a !== 'UNKNOWN')
-        }));
-
-        const uniqueRoutesMap = new Map<string, string[]>();
-        rawFlightPaths.forEach(fp => {
-          const rKey = JSON.stringify(fp.route);
-          if (!uniqueRoutesMap.has(rKey)) uniqueRoutesMap.set(rKey, []);
-          uniqueRoutesMap.get(rKey)!.push(fp.operator);
-        });
-
-        const consolidatedPaths: FlightPath[] = Array.from(uniqueRoutesMap.entries()).map(([routeStr, ops]) => ({
-          operator: ops.join(' / '),
-          route: JSON.parse(routeStr)
-        }));
-
-        const departure = combinedPath.length > 0 ? combinedPath[0] : (valOrUnk(inc.departure) || valOrUnk(inc.meta?.departure) || headInfo.airport || 'UNKNOWN');
-        const destination = combinedPath.length > 1 ? combinedPath[combinedPath.length - 1] : (valOrUnk(inc.destination) || valOrUnk(inc.meta?.destination) || headInfo.airport || 'UNKNOWN');
-
-        const { registration, callsign } = extractAviationIdentifiers((inc.headline || '') + ' ' + (inc.narrative || inc.meta?.narrative || ''));
-
-        const result: ManifestCardData = {
-          ...inc,
-          id: sId,
-          source_id: sId,
-          operator: safeOperators,
-          operator_codes: finalOperatorCodes,
-          aircraft_type: finalAircraft,
-          registration: registration,
-          callsign: callsign,
-          date: String(inc.date || inc.occurred_at || 'RECENT').toUpperCase(),
-          lastUpdated: String(inc.lastUpdated || inc.last_updated || inc.date || 'UNKNOWN').toUpperCase(),
-          metar: String(inc.metar || inc.meta?.metar || '').toUpperCase(),
-          narrative: String(inc.narrative || inc.meta?.narrative || inc.headline || 'NO NARRATIVE DATA AVAILABLE.').toUpperCase(),
-          theme: String(inc.status || '').toUpperCase() === 'CRASH' || String(inc.meta?.severity || '').toLowerCase().includes('accident') ? 'theme-crash' : (inc.status === 'ACCIDENT' ? 'theme-accident' : 'theme-news'),
-          occurrenceCategory: finalTags.length > 0 ? finalTags : [String(inc.meta?.severity || 'MONITORING').toUpperCase()],
-          departure: String(departure).toUpperCase(),
-          destination: String(destination).toUpperCase(),
-          flight_paths: consolidatedPaths,
-          status: inc.status || 'REPORT'
-        };
-
-        extractionCache.current.set(cacheKey, result);
-        return result;
-      });
-
-      setIncidents(formatted);
+      requestAnimationFrame(processChunk);
     } catch (e) {
       console.error('Failed to fetch live incidents:', e);
     }
@@ -348,6 +359,7 @@ const App: React.FC = () => {
             selectedIncident={selectedIncident}
             onTelemetryMatch={setTelemetryMatch}
             onSelectIncident={() => {}} 
+            onFlightsLoaded={() => setFlightsLoaded(true)}
           />
         </div>
 
@@ -357,11 +369,64 @@ const App: React.FC = () => {
         }}>
           {/* Global Header Bar */}
           <div style={{ 
-            position: 'absolute', top: '24px', left: '24px', right: '16px', 
-            zIndex: 101, pointerEvents: 'all' 
+            position: 'absolute', top: 0, left: 0, right: 0, 
+            zIndex: 101, pointerEvents: 'all'
           }}>
-            <div className="thin-title" style={{ fontSize: '0.65rem', opacity: 0.6, letterSpacing: '0.3em' }}>\\ AVIATION COMMAND</div>
-            <Clock />
+            <div style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              padding: '24px 24px 12px 24px'
+            }}>
+              <div>
+                <div className="thin-title" style={{ fontSize: '0.65rem', opacity: 0.6, letterSpacing: '0.3em' }}>\\ AVIATION COMMAND</div>
+                <Clock type="date" />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+                <Clock type="time" />
+                {incidents.length > 0 && (
+                  <button 
+                    onClick={() => {
+                      const headers = [
+                        'ID', 'DATE', 'STATUS', 'CATEGORIES', 'OPERATORS', 'OPERATOR_CODES', 
+                        'AIRCRAFT', 'REGISTRATION', 'CALLSIGN', 'HEX', 'DEPARTURE', 'DESTINATION', 
+                        'FLIGHT_PATH', 'NARRATIVE', 'METAR'
+                      ];
+                      const rows = incidents.map(inc => [
+                        inc.id,
+                        inc.date,
+                        inc.status,
+                        `"${(inc.occurrenceCategory || []).join(';')}"`,
+                        `"${(inc.operator || []).join(';')}"`,
+                        `"${(inc.operator_codes || []).join(';')}"`,
+                        `"${(inc.aircraft_type || []).join(';')}"`,
+                        inc.registration || '',
+                        inc.callsign || '',
+                        inc.flight_hex || '',
+                        inc.departure,
+                        inc.destination,
+                        `"${(inc.flight_paths?.[0]?.route || []).join(';')}"`,
+                        `"${(inc.narrative || '').replace(/"/g, '""')}"`,
+                        `"${(inc.metar || '').replace(/"/g, '""')}"`
+                      ]);
+                      const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
+                      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                      const link = document.createElement("a");
+                      const url = URL.createObjectURL(blob);
+                      link.setAttribute("href", url);
+                      link.setAttribute("download", `AVHERALD_EXPORT_${new Date().toISOString().split('T')[0]}.csv`);
+                      link.style.visibility = 'hidden';
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                    }}
+                    className="hud-button"
+                    style={{ padding: '4px 10px', fontSize: '0.55rem', letterSpacing: '0.08em' }}
+                  >
+                    EXPORT_INTEL.CSV
+                  </button>
+                )}
+              </div>
+            </div>
+            <div style={{ width: '100vw', height: '1px', background: 'rgba(255, 255, 255, 0.08)' }} />
           </div>
 
           <div style={{ 
@@ -388,6 +453,79 @@ const App: React.FC = () => {
             </div>
           </div>
         </div>
+        {(!incidentsLoaded || !flightsLoaded) && (
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            background: 'rgba(3, 3, 4, 0.95)',
+            backdropFilter: 'blur(12px)',
+            zIndex: 10000,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            alignItems: 'center',
+            fontFamily: 'monospace',
+            color: '#ffffff',
+            letterSpacing: '0.15em'
+          }}>
+            <div style={{
+              width: '400px',
+              padding: '30px',
+              border: '1px solid rgba(207, 20, 43, 0.3)',
+              background: 'rgba(3, 3, 4, 0.8)',
+              boxShadow: '0 0 30px rgba(207, 20, 43, 0.15)',
+              position: 'relative',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '20px'
+            }}>
+              {/* Corner brackets */}
+              <div style={{ position: 'absolute', top: '-1px', left: '-1px', width: '10px', height: '10px', borderTop: '2px solid var(--rose-red)', borderLeft: '2px solid var(--rose-red)' }} />
+              <div style={{ position: 'absolute', top: '-1px', right: '-1px', width: '10px', height: '10px', borderTop: '2px solid var(--rose-red)', borderRight: '2px solid var(--rose-red)' }} />
+              <div style={{ position: 'absolute', bottom: '-1px', left: '-1px', width: '10px', height: '10px', borderBottom: '2px solid var(--rose-red)', borderLeft: '2px solid var(--rose-red)' }} />
+              <div style={{ position: 'absolute', bottom: '-1px', right: '-1px', width: '10px', height: '10px', borderBottom: '2px solid var(--rose-red)', borderRight: '2px solid var(--rose-red)' }} />
+
+              <div style={{ fontSize: '1rem', color: 'var(--rose-red)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span className="pulse-dot" style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--rose-red)', display: 'inline-block' }} />
+                INITIALIZING NYX TACTICAL HUD...
+              </div>
+
+              <div style={{ width: '100%', height: '2px', background: 'rgba(255, 255, 255, 0.05)', position: 'relative', overflow: 'hidden' }}>
+                <div style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  height: '100%',
+                  background: 'var(--rose-red)',
+                  width: !incidentsLoaded && !flightsLoaded ? '15%' : (!incidentsLoaded ? '50%' : (!flightsLoaded ? '75%' : '100%')),
+                  transition: 'width 0.4s ease'
+                }} />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.65rem', opacity: 0.8 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>\\ INTEGRATING AVHERALD FEED...</span>
+                  <span style={{ color: incidentsLoaded ? '#4ade80' : '#f59e0b' }}>
+                    {incidentsLoaded ? 'RESOLVED' : 'SYNCHRONIZING'}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>\\ CONNECTING LIVE ADS-B TELEMETRY...</span>
+                  <span style={{ color: flightsLoaded ? '#4ade80' : '#f59e0b' }}>
+                    {flightsLoaded ? 'RESOLVED' : 'STABILIZING LINK'}
+                  </span>
+                </div>
+              </div>
+
+              <div style={{ fontSize: '0.55rem', opacity: 0.4, textAlign: 'center', marginTop: '10px' }}>
+                SECURE ENCRYPTED COMMUNICATIONS LINK // STANDBY
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </ErrorBoundary>
   );

@@ -296,7 +296,7 @@ const FlightTrackingGrid: React.FC<FlightTrackingGridProps> = ({ trackedFlights,
                     <MiniArcGauge value={flight.gs ?? 0} max={600} label="SPD" unit="kts" color="#dc143c" />
                     <MiniCompass heading={flight.track ?? 0} />
                     <MiniArcGauge value={altFt} max={45000} label="ALT" unit="ft" color="#8B0A14" />
-                    <VertRateBar fpm={flight.vert_rate ?? 0} />
+                    <VertRateBar fpm={flight.baro_rate ?? 0} />
                   </div>
 
                   {/* ── Footer telemetry ── */}

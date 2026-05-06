@@ -1,12 +1,35 @@
 import React, { useState, useEffect } from 'react';
 
-const Clock: React.FC = () => {
+interface ClockProps {
+  type?: 'date' | 'time' | 'both';
+}
+
+const Clock: React.FC<ClockProps> = ({ type = 'both' }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  const dateStr = currentTime.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase();
+  const timeStr = currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+
+  if (type === 'date') {
+    return (
+      <div className="header-text" style={{ fontSize: '1.2rem', color: 'var(--rose-red)', letterSpacing: '0.05em', whiteSpace: 'nowrap', marginTop: '4px' }}>
+        {dateStr}
+      </div>
+    );
+  }
+
+  if (type === 'time') {
+    return (
+      <div className="header-text" style={{ fontSize: '1.25rem', color: 'var(--rose-red)', letterSpacing: '0.05em', fontWeight: 900, whiteSpace: 'nowrap' }}>
+        {timeStr}
+      </div>
+    );
+  }
 
   return (
     <div style={{
@@ -20,10 +43,10 @@ const Clock: React.FC = () => {
       whiteSpace: 'nowrap'
     }}>
       <div className="header-text" style={{ fontSize: '1.2rem', color: 'var(--rose-red)', letterSpacing: '0.05em' }}>
-        {currentTime.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase()}
+        {dateStr}
       </div>
       <div className="header-text" style={{ fontSize: '1.25rem', color: 'var(--rose-red)', letterSpacing: '0.05em', fontWeight: 900 }}>
-        {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
+        {timeStr}
       </div>
     </div>
   );

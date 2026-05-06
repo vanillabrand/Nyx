@@ -5,7 +5,6 @@ export const EMERGENCY_SQUAWKS: Record<string, { label: string; severity: 'CRITI
   '7700': { label: 'GENERAL EMERGENCY',     severity: 'CRITICAL', shortCode: 'EMRG' },
   '7600': { label: 'RADIO FAILURE',         severity: 'URGENT',   shortCode: 'RDFL' },
   '7500': { label: 'UNLAWFUL INTERFERENCE', severity: 'CRITICAL', shortCode: 'HIJACK' },
-  '7777': { label: 'MIL INTERCEPTION',      severity: 'ALERT',    shortCode: 'MILAIR' },
 };
 
 // Inline SVG icon matching the CatgeoryIcon pattern from ManifestStack

@@ -10,24 +10,24 @@ export interface FlightPath {
 
 export interface ManifestCardData {
   id: string;
-  source_id: string;
-  operator: string[];
-  operator_codes?: string[];
-  aircraft_type: string[];
-  date: string;
-  status: string;
-  theme: string;
-  occurrenceCategory: string[];
-  narrative: string;
-  departure: string;
-  destination: string;
-  flight_paths?: FlightPath[];
-  metar?: string;
-  location?: string;
-  lastUpdated?: string;
-  registration?: string | null;
-  callsign?: string | null;
-  flight_hex?: string | null;
+source_id: string;
+operator: string[];
+operator_codes ?: string[];
+aircraft_type: string[];
+date: string;
+status: string;
+theme: string;
+occurrenceCategory: string[];
+narrative: string;
+departure: string;
+destination: string;
+flight_paths ?: FlightPath[];
+metar ?: string;
+location ?: string;
+lastUpdated ?: string;
+registration ?: string | null;
+callsign ?: string | null;
+flight_hex ?: string | null;
 }
 
 interface ManifestStackProps {
@@ -42,12 +42,16 @@ const ManifestStack: React.FC<ManifestStackProps> = ({ incidents, selectedId, se
   const scrollRef = useRef<HTMLDivElement>(null);
   const [scrollPos, setScrollPos] = useState(0);
 
+  const touchStartY = useRef(0);
+  const touchStartX = useRef(0);
+  const isDragging = useRef(false);
+
   const cards = incidents || [];
   const selectedCard = cards.find(c => c.id === selectedId);
 
   const handleWheel = (e: React.WheelEvent) => {
     if (selectedId) return;
-    
+
     const container = containerRef.current;
     const content = scrollRef.current;
     if (container && content) {
@@ -59,17 +63,59 @@ const ManifestStack: React.FC<ManifestStackProps> = ({ incidents, selectedId, se
     }
   };
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (selectedId) return;
+    const touch = e.touches[0];
+    touchStartY.current = touch.clientY;
+    touchStartX.current = touch.clientX;
+    isDragging.current = false;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (selectedId) return;
+    const touch = e.touches[0];
+    const deltaY = touch.clientY - touchStartY.current;
+    const deltaX = touch.clientX - touchStartX.current;
+
+    if (Math.abs(deltaY) > 5 || Math.abs(deltaX) > 5) {
+      isDragging.current = true;
+    }
+
+    const container = containerRef.current;
+    const content = scrollRef.current;
+    if (container && content) {
+      const maxScroll = Math.min(0, container.clientHeight - content.scrollHeight - 100);
+      setScrollPos(prev => {
+        const next = prev + deltaY * 1.2;
+        return Math.max(maxScroll, Math.min(0, next));
+      });
+    }
+    touchStartY.current = touch.clientY;
+    touchStartX.current = touch.clientX;
+  };
+
+  const handleTouchEnd = () => {
+    // Keep isDragging active slightly to prevent click event triggering right after touchend
+    setTimeout(() => {
+      isDragging.current = false;
+    }, 50);
+  };
+
   const renderCardContent = (card: ManifestCardData, isFocused: boolean) => (
-    <div 
+    <div
       onClick={(e) => {
+        if (isDragging.current) {
+          e.stopPropagation();
+          return;
+        }
         if (isFocused) {
           e.stopPropagation();
         } else {
           setSelectedId(card.id);
         }
       }}
-      style={{ 
-        width: isFocused ? '380px' : '192px', 
+      style={{
+        width: isFocused ? '380px' : '192px',
         height: isFocused ? 'calc(100vh - 160px)' : '210px',
         position: 'relative',
         cursor: isFocused ? 'default' : 'pointer'
@@ -77,7 +123,7 @@ const ManifestStack: React.FC<ManifestStackProps> = ({ incidents, selectedId, se
     >
       <div
         className={`manifest-card ${card.theme} ${isFocused ? 'focused-card' : ''}`}
-        style={{ 
+        style={{
           width: isFocused ? '380px' : '320px',
           height: isFocused ? 'calc(100vh - 160px)' : '350px',
           transform: isFocused ? 'none' : 'scale(0.60)',
@@ -93,29 +139,29 @@ const ManifestStack: React.FC<ManifestStackProps> = ({ incidents, selectedId, se
         }}
       >
         {isFocused && (
-            <button 
-              onClick={(e) => { e.stopPropagation(); setSelectedId(null); }}
-              style={{
-                position: 'absolute',
-                top: '16px',
-                right: '16px',
-                background: 'none',
-                border: 'none',
-                color: '#ff0000',
-                fontSize: '1.4rem',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                padding: '0',
-                lineHeight: 1,
-                zIndex: 1005,
-                transition: 'transform 0.1s'
-              }}
-              onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.2)'}
-              onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
-              title="CLOSE MANIFEST"
-            >
-              ✕
-            </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); setSelectedId(null); }}
+            style={{
+              position: 'absolute',
+              top: '16px',
+              right: '16px',
+              background: 'none',
+              border: 'none',
+              color: '#ff0000',
+              fontSize: '1.4rem',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              padding: '0',
+              lineHeight: 1,
+              zIndex: 1005,
+              transition: 'transform 0.1s'
+            }}
+            onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.2)'}
+            onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+            title="CLOSE MANIFEST"
+          >
+            ✕
+          </button>
         )}
         {/* Top Highlight Badge (Topper) */}
         <div className="reflective-shine">
@@ -126,12 +172,12 @@ const ManifestStack: React.FC<ManifestStackProps> = ({ incidents, selectedId, se
 
         {/* Clinical Grid Layout (Shipping Label Style) */}
         <div style={{ padding: '24px', flex: 1, display: 'flex', flexDirection: 'column', textTransform: 'uppercase' }}>
-          
+
           {/* Row 1: Mission Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '12px', marginBottom: '24px' }}>
             <div style={{ display: 'flex', gap: '20px' }}>
               {(card.occurrenceCategory || []).map((cat, idx) => (
-                <div key={idx} style={{ 
+                <div key={idx} style={{
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
@@ -140,10 +186,10 @@ const ManifestStack: React.FC<ManifestStackProps> = ({ incidents, selectedId, se
                   <div style={{ opacity: 0.9 }}>
                     <CategoryIcon category={cat} size={24} color="var(--rose-red)" />
                   </div>
-                  <div style={{ 
-                    fontSize: '0.5rem', 
-                    fontWeight: 900, 
-                    letterSpacing: '0.1em', 
+                  <div style={{
+                    fontSize: '0.5rem',
+                    fontWeight: 900,
+                    letterSpacing: '0.1em',
                     color: 'white',
                     opacity: 0.5,
                     textAlign: 'center'
@@ -163,8 +209,8 @@ const ManifestStack: React.FC<ManifestStackProps> = ({ incidents, selectedId, se
               <div style={{ fontSize: '0.7rem', fontWeight: 900, color: 'var(--rose-red)' }}>{card.date}</div>
             </div>
           </div>
-          
-          
+
+
           {/* Row 2: Central Identity (Centered Logo/Name) */}
           <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginBottom: '24px', paddingTop: '12px' }}>
             <div style={{ display: 'flex', gap: '12px', marginBottom: '12px', filter: 'drop-shadow(0 0 10px rgba(207,20,43,0.25))', flexWrap: 'wrap', justifyContent: 'center', color: 'var(--rose-red)' }}>
@@ -172,28 +218,28 @@ const ManifestStack: React.FC<ManifestStackProps> = ({ incidents, selectedId, se
                 <AirlineLogo key={idx} operator={op} size={isFocused ? 48 : (card.operator.length > 1 ? 48 : 64)} />
               ))}
             </div>
-            <div className="header-text" style={{ 
-              fontSize: isFocused ? '1.8rem' : '2.4rem', 
-              fontWeight: 900, 
-              lineHeight: 1, 
-              letterSpacing: '0.05em', 
+            <div className="header-text" style={{
+              fontSize: isFocused ? '1.8rem' : '2.4rem',
+              fontWeight: 900,
+              lineHeight: 1,
+              letterSpacing: '0.05em',
               textAlign: 'center',
               width: '100%',
               color: 'var(--rose-red)'
             }}>
-              {card.operator_codes && card.operator_codes.length > 0 
-                ? card.operator_codes.join(' / ') 
-                : (card.operator.length > 0 && card.operator[0] !== 'UNKNOWN' 
-                  ? card.operator.join(' / ') 
+              {card.operator_codes && card.operator_codes.length > 0
+                ? card.operator_codes.join(' / ')
+                : (card.operator.length > 0 && card.operator[0] !== 'UNKNOWN'
+                  ? card.operator.join(' / ')
                   : 'UNK')}
             </div>
-            
-            <div style={{ 
-              fontSize: '0.75rem', 
-              color: 'var(--rose-red)', 
-              opacity: 0.75, 
-              marginTop: '4px', 
-              letterSpacing: '0.1em', 
+
+            <div style={{
+              fontSize: '0.75rem',
+              color: 'var(--rose-red)',
+              opacity: 0.75,
+              marginTop: '4px',
+              letterSpacing: '0.1em',
               textAlign: 'center',
               fontWeight: 700,
               maxWidth: '100%',
@@ -204,12 +250,12 @@ const ManifestStack: React.FC<ManifestStackProps> = ({ incidents, selectedId, se
               {card.operator.join(' / ')}
             </div>
 
-            <div style={{ 
-              fontSize: '0.75rem', 
+            <div style={{
+              fontSize: '0.75rem',
               color: 'var(--rose-red)',
-              opacity: 0.55, 
-              marginTop: '12px', 
-              letterSpacing: '0.2em', 
+              opacity: 0.55,
+              marginTop: '12px',
+              letterSpacing: '0.2em',
               textAlign: 'center',
               fontWeight: 600
             }}>
@@ -232,9 +278,9 @@ const ManifestStack: React.FC<ManifestStackProps> = ({ incidents, selectedId, se
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                       {path.route.map((node, nIdx) => (
                         <React.Fragment key={nIdx}>
-                          <span style={{ 
-                            fontSize: '1.1rem', 
-                            fontWeight: 900, 
+                          <span style={{
+                            fontSize: '1.1rem',
+                            fontWeight: 900,
                             color: 'var(--rose-red)',
                             letterSpacing: '0.05em'
                           }}>
@@ -265,14 +311,14 @@ const ManifestStack: React.FC<ManifestStackProps> = ({ incidents, selectedId, se
             <div style={{ display: 'flex', flexDirection: 'column', marginTop: '24px', borderTop: '2px solid var(--rose-red)', paddingTop: '20px', textAlign: 'left', minHeight: 0 }}>
               <div style={{ display: 'flex', flexDirection: 'column', marginBottom: '24px', minHeight: 0 }}>
                 <div style={{ fontSize: '0.6rem', opacity: 0.4, marginBottom: '8px', flexShrink: 0 }}>INCIDENT_NARRATIVE</div>
-                <div style={{ 
+                <div style={{
                   maxHeight: '4.8rem', // Exactly 3 lines (1.6 * 3)
-                  fontSize: '0.95rem', 
-                  lineHeight: 1.6, 
+                  fontSize: '0.95rem',
+                  lineHeight: 1.6,
                   overflowY: 'auto',
-                  opacity: 0.9, 
-                  background: 'rgba(255,255,255,0.03)', 
-                  padding: '8px 12px', 
+                  opacity: 0.9,
+                  background: 'rgba(255,255,255,0.03)',
+                  padding: '8px 12px',
                   borderRadius: '4px',
                   scrollbarWidth: 'thin',
                   scrollbarColor: 'var(--rose-red) transparent'
@@ -280,7 +326,7 @@ const ManifestStack: React.FC<ManifestStackProps> = ({ incidents, selectedId, se
                   {card.narrative}
                 </div>
               </div>
-              
+
               {card.metar && (
                 <div style={{ marginBottom: '24px' }}>
                   <div style={{ fontSize: '0.6rem', opacity: 0.4, marginBottom: '8px' }}>METAR_DATA</div>
@@ -293,18 +339,18 @@ const ManifestStack: React.FC<ManifestStackProps> = ({ incidents, selectedId, se
               <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <div style={{ fontSize: '0.6rem', opacity: 0.4, marginBottom: '4px', letterSpacing: '0.1em' }}>SITUATIONAL AWARENESS</div>
-                  <div style={{ 
-                    fontSize: '0.8rem', 
-                    fontWeight: 900, 
+                  <div style={{
+                    fontSize: '0.8rem',
+                    fontWeight: 900,
                     color: hasTelemetryMatch ? '#00ffaa' : 'var(--rose-red)',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px'
                   }}>
-                    <span style={{ 
-                      width: '8px', 
-                      height: '8px', 
-                      borderRadius: '50%', 
+                    <span style={{
+                      width: '8px',
+                      height: '8px',
+                      borderRadius: '50%',
                       background: hasTelemetryMatch ? '#00ffaa' : 'rgba(255,255,255,0.1)',
                       boxShadow: hasTelemetryMatch ? '0 0 10px #00ffaa' : 'none'
                     }} />
@@ -329,21 +375,24 @@ const ManifestStack: React.FC<ManifestStackProps> = ({ incidents, selectedId, se
             </div>
           )}
 
-        {/* Aesthetic Manifest Footer Line */}
-        <div style={{ height: '4px', background: 'var(--rose-red)', opacity: 0.8 }} />
+          {/* Aesthetic Manifest Footer Line */}
+          <div style={{ height: '4px', background: 'var(--rose-red)', opacity: 0.8 }} />
+        </div>
       </div>
     </div>
-  </div>
   );
 
   return (
     <>
-      <div 
+      <div
         ref={containerRef}
         className="grid-mask-container"
         onWheel={handleWheel}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       >
-        <div 
+        <div
           ref={scrollRef}
           className="grid-scroll-container"
           style={{ transform: `translateY(${scrollPos}px)`, transition: 'none' }}
@@ -357,7 +406,7 @@ const ManifestStack: React.FC<ManifestStackProps> = ({ incidents, selectedId, se
       </div>
 
       {selectedId && selectedCard && (
-        <div 
+        <div
           className="focused-card-overlay"
           onClick={() => setSelectedId(null)}
           style={{ transition: 'none' }}

@@ -1,0 +1,13 @@
+node_modules
+.git
+.gitignore
+.env
+dist
+README.md
+Dockerfile
+.vscode
+scratch
+specs
+scrapers
+scripts
+*.log

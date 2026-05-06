@@ -12,8 +12,7 @@ export const SQUAWK_CODES: Record<string, string> = {
   '7004': 'AEROBATIC / DISPLAY FLIGHT',
   '0033': 'PARACHUTE DROPPING',
   
-  // Military
-  '7777': 'MILITARY INTERCEPTION',
+  // Military Section
 };
 
 export function lookupSquawk(squawk: string | number | undefined): string {

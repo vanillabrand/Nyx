@@ -12,9 +12,10 @@ interface GlobeSceneProps {
   selectedIncident?: ManifestCardData | null;
   onTelemetryMatch?: (matched: boolean) => void;
   onSelectIncident: (incident: any) => void;
+  onFlightsLoaded?: () => void;
 }
 
-const GlobeScene: React.FC<GlobeSceneProps> = ({ selectedIncident, onTelemetryMatch, onSelectIncident }) => {
+const GlobeScene: React.FC<GlobeSceneProps> = ({ selectedIncident, onTelemetryMatch, onSelectIncident, onFlightsLoaded }) => {
   const mountRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const markersGroupRef = useRef<THREE.Group | null>(null);
@@ -35,7 +36,7 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ selectedIncident, onTelemetryMa
 
   const pollIndexRef = useRef(0);
 
-  const [trafficMode, setTrafficMode] = useState<'OFF' | 'SELECTED' | 'ALL' | 'HEAVY' | 'PRIVATE' | 'HELI'>('ALL');
+  const [trafficMode, setTrafficMode] = useState<'OFF' | 'SELECTED' | 'ALL' | 'HEAVY' | 'TACTICAL' | 'CRITICAL' | 'PRIVATE' | 'HELI'>('TACTICAL');
   const trafficModeRef = useRef(trafficMode);
   useEffect(() => { trafficModeRef.current = trafficMode; }, [trafficMode]);
 
@@ -267,54 +268,99 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ selectedIncident, onTelemetryMa
 
         const currentHexes = new Set();
         const now = Date.now();
-        flights.forEach((f: any) => {
-          if (!f.hex) return;
-          currentHexes.add(f.hex);
-          const pos = latLonToVector3(f.lat, f.lon, globeRadius, f.alt_geom || f.alt_baro || 0);
-          const gs = Number(f.gs || 450);
-          const distDeg = gs / 7200;
-          const trackRad = (f.track || 0) * (Math.PI / 180);
-          const projectedTarget = latLonToVector3(f.lat + Math.cos(trackRad) * distDeg, f.lon + (Math.sin(trackRad) * distDeg) / Math.cos(f.lat * Math.PI / 180), globeRadius, f.alt_geom || f.alt_baro || 0);
+        
+        // Priority Sort: Emergency > Tracked > Heavy > Others
+        const sortedFlights = [...flights].sort((a, b) => {
+          const isEmA = a.squawk && EMERGENCY_SQUAWKS[a.squawk] ? 1 : 0;
+          const isEmB = b.squawk && EMERGENCY_SQUAWKS[b.squawk] ? 1 : 0;
+          if (isEmA !== isEmB) return isEmB - isEmA;
+          
+          const isTrackA = trackedFlightsRef.current.some(f => f.hex === a.hex) ? 1 : 0;
+          const isTrackB = trackedFlightsRef.current.some(f => f.hex === b.hex) ? 1 : 0;
+          if (isTrackA !== isTrackB) return isTrackB - isTrackA;
 
-          const planeData = activePlanesRef.current.get(f.hex);
-          if (planeData) {
-            planeData.startPos.copy(planeData.mesh.position);
-            planeData.targetPos.copy(projectedTarget);
-            planeData.startTime = now;
-            planeData.targetTrack = f.track || 0;
-            planeData.flightData = f;
-          } else {
-            const mesh = createPlaneMesh(f.hex, f.t);
-            mesh.position.copy(pos);
-            flightsGroup.add(mesh);
-            activePlanesRef.current.set(f.hex, { mesh, startPos: pos.clone(), targetPos: projectedTarget, startTime: now, targetTrack: f.track || 0, flightData: f, hasTwoPoints: true });
-          }
+          return 0;
         });
 
-        activePlanesRef.current.forEach((data, hex) => {
-          if (apiSuccess && !currentHexes.has(hex)) {
-            data.staleCount = (data.staleCount || 0) + 1;
-            if (data.staleCount > 3) {
-              flightsGroup.remove(data.mesh);
-              activePlanesRef.current.delete(hex);
-              rotorMeshesRef.current.delete(hex);
+        const CHUNK_SIZE = 50;
+        let index = 0;
+
+        const processChunk = () => {
+          const end = Math.min(index + CHUNK_SIZE, sortedFlights.length);
+          for (; index < end; index++) {
+            const f = sortedFlights[index];
+            if (!f.hex) continue;
+            currentHexes.add(f.hex);
+            
+            const pos = latLonToVector3(f.lat, f.lon, globeRadius, f.alt_geom || f.alt_baro || 0);
+            const gs = Number(f.gs || 450);
+            const distDeg = gs / 7200;
+            const trackRad = (f.track || 0) * (Math.PI / 180);
+            const projectedTarget = latLonToVector3(
+              f.lat + Math.cos(trackRad) * distDeg, 
+              f.lon + (Math.sin(trackRad) * distDeg) / Math.cos(f.lat * Math.PI / 180), 
+              globeRadius, 
+              f.alt_geom || f.alt_baro || 0
+            );
+
+            const planeData = activePlanesRef.current.get(f.hex);
+            if (planeData) {
+              planeData.startPos.copy(planeData.mesh.position);
+              planeData.targetPos.copy(projectedTarget);
+              planeData.startTime = now;
+              planeData.targetTrack = f.track || 0;
+              planeData.flightData = f;
+            } else {
+              const mesh = createPlaneMesh(f.hex, f.t);
+              mesh.position.copy(pos);
+              flightsGroup.add(mesh);
+              activePlanesRef.current.set(f.hex, { 
+                mesh, 
+                startPos: pos.clone(), 
+                targetPos: projectedTarget, 
+                startTime: now, 
+                targetTrack: f.track || 0, 
+                flightData: f, 
+                hasTwoPoints: true 
+              });
             }
           }
-        });
 
-        // Scan for emergencies
-        const currentEmergencyFlights = Array.from(activePlanesRef.current.values())
-          .map(d => d.flightData)
-          .filter(f => f.squawk && EMERGENCY_SQUAWKS[f.squawk]);
-        setEmergencyFlights(currentEmergencyFlights);
-        emergencyHexesRef.current = new Set(currentEmergencyFlights.map(f => f.hex));
+          if (index < sortedFlights.length) {
+            requestAnimationFrame(processChunk);
+          } else {
+            // Cleanup stale planes after all chunks are processed
+            activePlanesRef.current.forEach((data, hex) => {
+              if (apiSuccess && !currentHexes.has(hex)) {
+                data.staleCount = (data.staleCount || 0) + 1;
+                if (data.staleCount > 3) {
+                  flightsGroup.remove(data.mesh);
+                  activePlanesRef.current.delete(hex);
+                  rotorMeshesRef.current.delete(hex);
+                }
+              }
+            });
 
-        // Call match callback if selected plane is found
-        if (selectedIncidentRef.current) {
-          const match = activePlanesRef.current.has(selectedIncidentRef.current.flight_hex?.toLowerCase() || '');
-          onTelemetryMatch?.(match);
-        }
-      } finally {
+            // Scan for emergencies
+            const currentEmergencyFlights = Array.from(activePlanesRef.current.values())
+              .map(d => d.flightData)
+              .filter(f => f.squawk && EMERGENCY_SQUAWKS[f.squawk]);
+            setEmergencyFlights(currentEmergencyFlights);
+            emergencyHexesRef.current = new Set(currentEmergencyFlights.map(f => f.hex));
+
+            // Call match callback if selected plane is found
+            if (selectedIncidentRef.current) {
+              const match = activePlanesRef.current.has(selectedIncidentRef.current.flight_hex?.toLowerCase() || '');
+              onTelemetryMatch?.(match);
+            }
+            onFlightsLoaded?.();
+            isBatchingRef.current = false;
+          }
+        };
+
+        processChunk();
+      } catch (e) {
+        console.error('Failed to fetch live incidents:', e);
         isBatchingRef.current = false;
       }
     };
@@ -356,11 +402,16 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ selectedIncident, onTelemetryMa
 
         let visible = data.mesh.position.clone().normalize().dot(camPosDir) >= (horizonCos - 0.2);
         if (visible) {
-          if (mode === 'OFF') visible = isEmergency;
-          else if (mode === 'SELECTED') visible = isEmergency || isTracked;
-          else if (mode === 'HEAVY') visible = isEmergency || type === 'widebody';
-          else if (mode === 'PRIVATE') visible = isEmergency || type === 'privateJet';
-          else if (mode === 'HELI') visible = isEmergency || type === 'heli';
+          if (mode === 'OFF') visible = false;
+          else if (mode === 'SELECTED') visible = isTracked;
+          else if (mode === 'CRITICAL') visible = isEmergency;
+          else if (mode === 'TACTICAL') visible = isEmergency || isTracked || type === 'widebody';
+          else if (mode === 'HEAVY') visible = type === 'widebody';
+          else if (mode === 'PRIVATE') visible = type === 'privateJet';
+          else if (mode === 'HELI') visible = type === 'heli';
+          
+          // Emergency and Tracked always override visibility if in view
+          if (isEmergency || isTracked) visible = data.mesh.position.clone().normalize().dot(camPosDir) >= (horizonCos - 0.2);
         }
         data.mesh.visible = visible;
 
@@ -444,7 +495,27 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ selectedIncident, onTelemetryMa
     };
     animate();
 
-    const onMouseClick = (event: MouseEvent) => {
+    let pointerDownX = 0;
+    let pointerDownY = 0;
+    let pointerDownTime = 0;
+
+    const onPointerDown = (event: PointerEvent) => {
+      pointerDownX = event.clientX;
+      pointerDownY = event.clientY;
+      pointerDownTime = Date.now();
+    };
+
+    const onPointerUp = (event: PointerEvent) => {
+      // Prevent selection if user clicked on HTML overlays, buttons, or panels
+      if (event.target !== renderer.domElement) return;
+
+      const deltaX = Math.abs(event.clientX - pointerDownX);
+      const deltaY = Math.abs(event.clientY - pointerDownY);
+      const deltaTime = Date.now() - pointerDownTime;
+
+      // Ignore selection if the user was dragging/rotating (delta > 5px) or long pressing (> 300ms)
+      if (deltaX > 5 || deltaY > 5 || deltaTime > 300) return;
+
       const mouse = new THREE.Vector2((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1);
       let best: FlightState | null = null; 
       let minDist = 0.05;
@@ -467,7 +538,9 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ selectedIncident, onTelemetryMa
         onSelectIncident(selectedFlight);
       }
     };
-    window.addEventListener('click', onMouseClick);
+
+    renderer.domElement.addEventListener('pointerdown', onPointerDown);
+    renderer.domElement.addEventListener('pointerup', onPointerUp);
 
     const handleResize = () => {
       camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
@@ -479,14 +552,17 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ selectedIncident, onTelemetryMa
       clearInterval(interval);
       clearInterval(trackedInterval);
       cancelAnimationFrame(batchRequestRef.current);
-      window.removeEventListener('click', onMouseClick);
+      if (rendererRef.current) {
+        rendererRef.current.domElement.removeEventListener('pointerdown', onPointerDown);
+        rendererRef.current.domElement.removeEventListener('pointerup', onPointerUp);
+      }
       window.removeEventListener('resize', handleResize);
       mountRef.current?.removeChild(renderer.domElement);
     };
   }, []);
 
   const cycleTrafficMode = () => {
-    const modes: ('ALL' | 'OFF' | 'SELECTED' | 'HEAVY' | 'PRIVATE' | 'HELI')[] = ['ALL', 'OFF', 'SELECTED', 'HEAVY', 'PRIVATE', 'HELI'];
+    const modes: ('ALL' | 'TACTICAL' | 'CRITICAL' | 'OFF' | 'SELECTED' | 'HEAVY' | 'PRIVATE' | 'HELI')[] = ['TACTICAL', 'CRITICAL', 'ALL', 'OFF', 'SELECTED', 'HEAVY', 'PRIVATE', 'HELI'];
     const nextIdx = (modes.indexOf(trafficMode) + 1) % modes.length;
     setTrafficMode(modes[nextIdx]);
   };

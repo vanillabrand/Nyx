@@ -12,12 +12,21 @@ export interface Airline {
 
 const airlines: Airline[] = airlineData as Airline[];
 
+// Tactical Overrides: Fixes for specific airlines identified by the user
+const CUSTOM_AIRLINES: Airline[] = [
+  { name: "Malta Air", alias: "Ryanair Malta", iata: "AL", icao: "MAY", callsign: "BLUE MED", country: "Malta" },
+  { name: "Sichuan Airlines", alias: "Sichuan", iata: "3U", icao: "CSC", callsign: "SI CHUAN", country: "China" },
+  { name: "Brussels Airlines", alias: "Brussels", iata: "SN", icao: "BEL", callsign: "BEE-LINE", country: "Belgium" },
+  { name: "Austrian Airlines", alias: "Austrian", iata: "OS", icao: "AUA", callsign: "AUSTRIAN", country: "Austria" },
+  { name: "Swiss International Air Lines", alias: "Swiss", iata: "LX", icao: "SWR", callsign: "SWISS", country: "Switzerland" },
+  { name: "Lufthansa", alias: "Lufthansa", iata: "LH", icao: "DLH", callsign: "LUFTHANSA", country: "Germany" },
+];
+
 // Optimization: Pre-index for O(1) exact matches
 const nameIndex = new Map<string, Airline[]>();
 const codeIndex = new Map<string, Airline[]>();
 
-// Build the index once at module load
-airlines.forEach(a => {
+const indexAirline = (a: Airline) => {
   if (!a || !a.name) return;
 
   const name = a.name.toUpperCase();
@@ -36,24 +45,24 @@ airlines.forEach(a => {
     nameIndex.get(callsign)!.push(a);
   }
 
-  // Only index IATA codes (2 chars) and ICAO codes (3 chars) – never allow
-  // a 3-letter airport IATA to collide with an airline ICAO
   if (a.iata && typeof a.iata === 'string' && a.iata !== '-' && a.iata.length === 2) {
     const iata = a.iata.toUpperCase();
     if (!codeIndex.has(iata)) codeIndex.set(iata, []);
     codeIndex.get(iata)!.push(a);
   }
 
-  // ICAO airline codes are 3 uppercase letters; but ONLY add to codeIndex if the
-  // code does NOT collide with an airport IATA code (cross-vector exclusion)
   if (a.icao && typeof a.icao === 'string' && a.icao !== '-' && a.icao.length === 3) {
     const icao = a.icao.toUpperCase();
-    if (!iataCodeSet.has(icao)) { // Guard: skip if it's also an airport IATA
+    if (!iataCodeSet.has(icao)) { 
       if (!codeIndex.has(icao)) codeIndex.set(icao, []);
       codeIndex.get(icao)!.push(a);
     }
   }
-});
+};
+
+// Build the index once at module load
+CUSTOM_AIRLINES.forEach(indexAirline);
+airlines.forEach(indexAirline);
 
 // Linguistic blacklist – words that must NEVER be treated as airline identifiers
 // via NLP extraction. Seed/scraper operators bypass this entirely.
@@ -67,8 +76,9 @@ const BLACKLIST = new Set([
   'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC',
   'JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'JUNE', 'JULY', 'AUGUST',
   'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER',
-  // Compass/geo
-  'NORTH', 'SOUTH', 'EAST', 'WEST', 'ATLANTIC', 'PACIFIC',
+  'NORTH', 'SOUTH', 'EAST', 'WEST', 'ATLANTIC', 'PACIFIC', 'INDIAN', 'ARCTIC',
+  'SOUTHERN', 'MEDITERRANEAN', 'CARIBBEAN', 'CASPIAN', 'BALTIC', 'AEGEAN',
+  'SEA', 'OCEAN', 'COAST', 'COASTLINE', 'OFFSHORE', 'CHANNEL', 'GULF', 'BAY',
   'INTERNATIONAL', 'REGIONAL', 'CHARTER', 'SERVICE', 'SERVICES',
   'CARGO', 'TRANSPORT', 'EXPRESS', 'CONNECTION',
   // Articles/prepositions
@@ -200,7 +210,22 @@ export function findBestAirlineMatch(input: string, threshold: number = 0.85): A
   const code = codeIndex.get(upperInput);
   if (code) return pickBest(code);
 
-  // 3. Fuzzy match – only for phrases of 5+ chars and only when threshold allows it
+  // 3. Heuristic: Single-word prefix match for major names (e.g., SICHUAN -> SICHUAN AIRLINES)
+  // Only for longer words to avoid colliding with prepositions/articles
+  if (upperInput.length >= 6 && !upperInput.includes(' ')) {
+    for (const airline of airlines) {
+      if (airline.name.toUpperCase().startsWith(upperInput)) {
+        // If it starts with the word followed by a space, it's a high-confidence match
+        if (airline.name.toUpperCase().startsWith(upperInput + ' ')) return airline;
+      }
+    }
+    // Also check custom list for prefixes
+    for (const airline of CUSTOM_AIRLINES) {
+      if (airline.name.toUpperCase().startsWith(upperInput)) return airline;
+    }
+  }
+
+  // 4. Fuzzy match – only for phrases of 5+ chars and only when threshold allows it
   if (upperInput.length < 5) return null; // Never fuzzy-match very short tokens
   if (threshold >= 0.97) return null;     // At max threshold, require exact match only
 
